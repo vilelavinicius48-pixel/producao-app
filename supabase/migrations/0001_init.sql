@@ -28,9 +28,7 @@ language sql
 stable
 security definer
 set search_path = public
-as $$
-  select perfil from public.operadores where id = auth.uid();
-$$;
+as 'select perfil from public.operadores where id = auth.uid();';
 
 create or replace function public.is_gestor()
 returns boolean
@@ -38,9 +36,7 @@ language sql
 stable
 security definer
 set search_path = public
-as $$
-  select coalesce((select perfil = 'gestor' from public.operadores where id = auth.uid()), false);
-$$;
+as 'select coalesce((select perfil = ''gestor'' from public.operadores where id = auth.uid()), false);';
 
 -- ----------------------------------------------------------------------------
 -- maquinas
