@@ -46,6 +46,51 @@ export type PecaMaterial = {
   unidade_medida: string;
 };
 
+export type StatusOP = "aberta" | "em_producao" | "parada" | "concluida";
+
+export type OrdemProducao = {
+  id: string;
+  numero: number;
+  peca_id: string;
+  maquina_id: string;
+  quantidade_planejada: number;
+  tempo_estimado_minutos: number;
+  status: StatusOP;
+  criado_por: string | null;
+  created_at: string;
+  concluida_em: string | null;
+};
+
+export type Apontamento = {
+  id: string;
+  op_id: string;
+  operador_id: string;
+  timestamp_start: string;
+  timestamp_stop: string | null;
+  quantidade_produzida: number | null;
+  quantidade_refugada: number | null;
+  eficiencia: number | null;
+};
+
+export type Parada = {
+  id: string;
+  op_id: string;
+  timestamp_inicio: string;
+  timestamp_fim: string | null;
+  motivo_id: string | null;
+};
+
+export type ResultadoInspecao = "aprovado" | "reprovado" | "retrabalho";
+
+export type InspecaoQualidade = {
+  id: string;
+  apontamento_id: string;
+  resultado: ResultadoInspecao;
+  observacao: string | null;
+  avaliador_id: string;
+  created_at: string;
+};
+
 export type Database = {
   public: {
     Tables: {
@@ -109,8 +154,112 @@ export type Database = {
           },
         ];
       };
+      ordens_producao: {
+        Row: OrdemProducao;
+        Insert: Partial<OrdemProducao> &
+          Pick<OrdemProducao, "peca_id" | "maquina_id" | "quantidade_planejada" | "tempo_estimado_minutos">;
+        Update: Partial<OrdemProducao>;
+        Relationships: [
+          {
+            foreignKeyName: "ordens_producao_peca_id_fkey";
+            columns: ["peca_id"];
+            isOneToOne: false;
+            referencedRelation: "pecas";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "ordens_producao_maquina_id_fkey";
+            columns: ["maquina_id"];
+            isOneToOne: false;
+            referencedRelation: "maquinas";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      apontamentos: {
+        Row: Apontamento;
+        Insert: Partial<Apontamento> & Pick<Apontamento, "op_id" | "operador_id">;
+        Update: Partial<Apontamento>;
+        Relationships: [
+          {
+            foreignKeyName: "apontamentos_op_id_fkey";
+            columns: ["op_id"];
+            isOneToOne: false;
+            referencedRelation: "ordens_producao";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "apontamentos_operador_id_fkey";
+            columns: ["operador_id"];
+            isOneToOne: false;
+            referencedRelation: "operadores";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      paradas: {
+        Row: Parada;
+        Insert: Partial<Parada> & Pick<Parada, "op_id">;
+        Update: Partial<Parada>;
+        Relationships: [
+          {
+            foreignKeyName: "paradas_op_id_fkey";
+            columns: ["op_id"];
+            isOneToOne: false;
+            referencedRelation: "ordens_producao";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "paradas_motivo_id_fkey";
+            columns: ["motivo_id"];
+            isOneToOne: false;
+            referencedRelation: "motivos_parada";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      inspecoes_qualidade: {
+        Row: InspecaoQualidade;
+        Insert: Partial<InspecaoQualidade> &
+          Pick<InspecaoQualidade, "apontamento_id" | "resultado" | "avaliador_id">;
+        Update: Partial<InspecaoQualidade>;
+        Relationships: [
+          {
+            foreignKeyName: "inspecoes_qualidade_apontamento_id_fkey";
+            columns: ["apontamento_id"];
+            isOneToOne: true;
+            referencedRelation: "apontamentos";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     Views: Record<string, never>;
-    Functions: Record<string, never>;
+    Functions: {
+      iniciar_apontamento: {
+        Args: { p_op_id: string };
+        Returns: Apontamento;
+      };
+      parar_producao: {
+        Args: {
+          p_apontamento_id: string;
+          p_quantidade_produzida: number;
+          p_quantidade_refugada: number;
+        };
+        Returns: Apontamento;
+      };
+      pausar_producao: {
+        Args: {
+          p_apontamento_id: string;
+          p_quantidade_produzida: number;
+          p_quantidade_refugada: number;
+        };
+        Returns: Apontamento;
+      };
+      voltar_parada: {
+        Args: { p_op_id: string; p_motivo_id: string };
+        Returns: Apontamento;
+      };
+    };
   };
 }

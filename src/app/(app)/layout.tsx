@@ -5,6 +5,12 @@ import { logout } from "@/app/login/actions";
 
 const NAV_ITEMS: { href: string; label: string; perfis: Array<"gestor" | "operador" | "qualidade"> }[] = [
   { href: "/", label: "Início", perfis: ["gestor", "operador", "qualidade"] },
+  { href: "/dashboard", label: "Painel", perfis: ["gestor", "operador", "qualidade"] },
+  { href: "/apontamento", label: "Apontamento", perfis: ["gestor", "operador"] },
+  { href: "/ordens", label: "Ordens de produção", perfis: ["gestor"] },
+  { href: "/qualidade", label: "Qualidade", perfis: ["qualidade"] },
+  { href: "/historico", label: "Histórico", perfis: ["gestor", "qualidade"] },
+  { href: "/relatorios/diario", label: "Relatório diário", perfis: ["gestor"] },
   { href: "/cadastros/pecas", label: "Peças", perfis: ["gestor"] },
   { href: "/cadastros/maquinas", label: "Máquinas", perfis: ["gestor"] },
   { href: "/cadastros/motivos-parada", label: "Motivos de parada", perfis: ["gestor"] },

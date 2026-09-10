@@ -33,3 +33,11 @@ export async function requireOperador(): Promise<Operador> {
   }
   return operador;
 }
+
+export async function requireQualidade(): Promise<Operador> {
+  const operador = await getOperadorAtual();
+  if (!operador || operador.perfil !== "qualidade") {
+    redirect("/");
+  }
+  return operador;
+}
