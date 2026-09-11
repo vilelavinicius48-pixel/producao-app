@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getOperadorAtual } from "@/lib/auth";
 import { logout } from "@/app/login/actions";
+import { MobileNav } from "./MobileNav";
 
 const NAV_ITEMS: { href: string; label: string; perfis: Array<"gestor" | "operador" | "qualidade"> }[] = [
   { href: "/", label: "Início", perfis: ["gestor", "operador", "qualidade"] },
@@ -32,11 +33,14 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="flex min-h-screen flex-col">
-      <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
-          <div className="flex items-center gap-6">
-            <span className="text-lg font-bold text-slate-900">Produção</span>
-            <nav className="flex gap-1">
+      <header className="sticky top-0 z-50 border-b border-slate-200 bg-white">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-3 py-2.5 sm:px-4 sm:py-3">
+          <div className="flex min-w-0 items-center gap-3 sm:gap-6">
+            <MobileNav items={visibleItems} />
+            <Link href="/" className="shrink-0 text-lg font-bold text-slate-900">
+              Produção
+            </Link>
+            <nav className="hidden flex-wrap gap-1 sm:flex">
               {visibleItems.map((item) => (
                 <Link
                   key={item.href}
@@ -49,14 +53,15 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             </nav>
           </div>
 
-          <div className="flex items-center gap-3">
-            <div className="text-right text-sm">
+          <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+            <div className="hidden text-right text-sm sm:block">
               <div className="font-medium text-slate-900">{operador.nome}</div>
               <div className="text-slate-500 capitalize">{operador.perfil}</div>
             </div>
             <form action={logout}>
               <button
                 type="submit"
+                aria-label="Sair"
                 className="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100"
               >
                 Sair
@@ -66,7 +71,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8">{children}</main>
+      <main className="mx-auto w-full max-w-6xl flex-1 px-3 py-6 sm:px-4 sm:py-8">{children}</main>
     </div>
   );
 }

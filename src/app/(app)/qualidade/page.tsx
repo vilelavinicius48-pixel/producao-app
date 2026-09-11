@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { requireQualidade } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 
@@ -24,8 +24,8 @@ export default async function QualidadePage() {
     <div>
       <h1 className="text-2xl font-bold text-slate-900">Qualidade — inspeções pendentes</h1>
 
-      <div className="mt-6 overflow-hidden rounded-xl border border-slate-200 bg-white">
-        <table className="w-full text-left text-sm">
+      <div className="mt-6 overflow-x-auto rounded-xl border border-slate-200 bg-white">
+        <table className="w-full min-w-[640px] text-left text-sm">
           <thead className="bg-slate-50 text-slate-500">
             <tr>
               <th className="px-4 py-3">OP</th>

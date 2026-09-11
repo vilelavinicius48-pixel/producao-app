@@ -138,7 +138,8 @@ export default async function OPDetalhePage({
       <div className="mt-6 rounded-xl border border-slate-200 bg-white p-4">
         <h2 className="mb-3 text-sm font-semibold text-slate-900">Apontamentos</h2>
         {apontamentos && apontamentos.length > 0 ? (
-          <table className="w-full text-left text-sm">
+          <div className="overflow-x-auto">
+          <table className="w-full min-w-[640px] text-left text-sm">
             <thead className="text-slate-500">
               <tr>
                 <th className="py-1 pr-3">Operador</th>
@@ -175,6 +176,7 @@ export default async function OPDetalhePage({
               })}
             </tbody>
           </table>
+          </div>
         ) : (
           <p className="text-sm text-slate-400">Nenhum apontamento ainda</p>
         )}

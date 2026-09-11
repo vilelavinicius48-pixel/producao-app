@@ -1,4 +1,4 @@
-import { requireGestor } from "@/lib/auth";
+﻿import { requireGestor } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 
 function formatMinutos(min: number) {
@@ -99,8 +99,8 @@ export default async function RelatorioDiarioPage({
         </button>
       </form>
 
-      <div className="mt-6 overflow-hidden rounded-xl border border-slate-200 bg-white">
-        <table className="w-full text-left text-sm">
+      <div className="mt-6 overflow-x-auto rounded-xl border border-slate-200 bg-white">
+        <table className="w-full min-w-[640px] text-left text-sm">
           <thead className="bg-slate-50 text-slate-500">
             <tr>
               <th className="px-4 py-3">Máquina</th>
