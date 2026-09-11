@@ -1,5 +1,6 @@
-import { notFound } from "next/navigation";
+﻿import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { formatSegundos } from "@/lib/tempo";
 
 export default async function PecaDetalhePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -23,8 +24,8 @@ export default async function PecaDetalhePage({ params }: { params: Promise<{ id
       <h1 className="text-2xl font-bold text-slate-900">
         {peca.codigo} — {peca.descricao}
       </h1>
-      <p className="mt-1 text-sm text-slate-500">
-        Tempo padrão: {peca.tempo_padrao_por_unidade} min/unidade ·{" "}
+      <p className="mt-1 text-sm text-slate-600">
+        Tempo padrão: {formatSegundos(peca.tempo_padrao_segundos)} (h:min:s) por unidade ·{" "}
         {peca.ativo ? "Ativa" : "Inativa"}
       </p>
 
@@ -37,7 +38,7 @@ export default async function PecaDetalhePage({ params }: { params: Promise<{ id
               return <li key={i}>{maquina ? `${maquina.codigo} — ${maquina.nome}` : "-"}</li>;
             })}
             {maquinasCompativeis?.length === 0 && (
-              <li className="text-slate-400">Nenhuma máquina vinculada</li>
+              <li className="text-slate-500">Nenhuma máquina vinculada</li>
             )}
           </ul>
         </div>
@@ -51,7 +52,7 @@ export default async function PecaDetalhePage({ params }: { params: Promise<{ id
               </li>
             ))}
             {materiais?.length === 0 && (
-              <li className="text-slate-400">Nenhum material cadastrado</li>
+              <li className="text-slate-500">Nenhum material cadastrado</li>
             )}
           </ul>
         </div>

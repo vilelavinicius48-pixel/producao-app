@@ -8,12 +8,13 @@ import {
   voltarParadaAction,
 } from "../actions";
 import { Cronometro } from "@/components/Cronometro";
-import type { MotivoParada, StatusOP } from "@/types/database";
+import type { MotivoParada, Operador, StatusOP } from "@/types/database";
 
 interface Props {
   opId: string;
   numero: string;
   status: StatusOP;
+  operadores: Operador[];
   apontamentoAberto: { id: string; timestamp_start: string; operadorNome: string } | null;
   paradaAberta: { timestamp_inicio: string } | null;
   motivos: MotivoParada[];
@@ -21,14 +22,47 @@ interface Props {
 
 type View = "buttons" | "finalizar" | "parada" | "voltar";
 
-export function ApontamentoAcoes({ opId, numero, status, apontamentoAberto, paradaAberta, motivos }: Props) {
+function SeletorOperador({ operadores }: { operadores: Operador[] }) {
+  return (
+    <div>
+      <label className="mb-1 block text-sm font-medium text-slate-700">Operador</label>
+      {operadores.length === 0 ? (
+        <p className="text-sm text-red-600">Nenhum operador cadastrado. Peça a um gestor para cadastrar.</p>
+      ) : (
+        <select
+          name="operador_id"
+          required
+          className="w-full rounded-xl border border-slate-300 px-4 py-4 text-lg focus:border-blue-500 focus:outline-none"
+        >
+          <option value="">Selecione quem está operando...</option>
+          {operadores.map((o) => (
+            <option key={o.id} value={o.id}>
+              {o.matricula} — {o.nome}
+            </option>
+          ))}
+        </select>
+      )}
+    </div>
+  );
+}
+
+export function ApontamentoAcoes({
+  opId,
+  numero,
+  status,
+  operadores,
+  apontamentoAberto,
+  paradaAberta,
+  motivos,
+}: Props) {
   const [view, setView] = useState<View>("buttons");
 
   if (status === "aberta") {
     return (
-      <form action={iniciarApontamentoAction}>
+      <form action={iniciarApontamentoAction} className="space-y-4">
         <input type="hidden" name="op_id" value={opId} />
         <input type="hidden" name="numero" value={numero} />
+        <SeletorOperador operadores={operadores} />
         <button
           type="submit"
           className="w-full rounded-2xl bg-green-600 px-6 py-8 text-2xl font-bold text-white hover:bg-green-700"
@@ -117,20 +151,23 @@ export function ApontamentoAcoes({ opId, numero, status, apontamentoAberto, para
         <form action={voltarParadaAction} className="space-y-4">
           <input type="hidden" name="op_id" value={opId} />
           <input type="hidden" name="numero" value={numero} />
-          <h2 className="text-xl font-bold text-slate-900">Motivo da parada</h2>
-          <select
-            name="motivo_id"
-            required
-            autoFocus
-            className="w-full rounded-xl border border-slate-300 px-4 py-4 text-lg focus:border-blue-500 focus:outline-none"
-          >
-            <option value="">Selecione...</option>
-            {motivos.map((m) => (
-              <option key={m.id} value={m.id}>
-                {m.descricao}
-              </option>
-            ))}
-          </select>
+          <h2 className="text-xl font-bold text-slate-900">Voltar de parada</h2>
+          <SeletorOperador operadores={operadores} />
+          <div>
+            <label className="mb-1 block text-sm font-medium text-slate-700">Motivo da parada</label>
+            <select
+              name="motivo_id"
+              required
+              className="w-full rounded-xl border border-slate-300 px-4 py-4 text-lg focus:border-blue-500 focus:outline-none"
+            >
+              <option value="">Selecione...</option>
+              {motivos.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.descricao}
+                </option>
+              ))}
+            </select>
+          </div>
           <div className="flex gap-3">
             <button
               type="button"

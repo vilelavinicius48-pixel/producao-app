@@ -19,7 +19,7 @@ export async function createOP(formData: FormData) {
 
   const { data: peca, error: pecaError } = await supabase
     .from("pecas")
-    .select("tempo_padrao_por_unidade")
+    .select("tempo_padrao_segundos")
     .eq("id", pecaId)
     .single();
   if (pecaError || !peca) throw new Error("Peça não encontrada");
@@ -33,7 +33,7 @@ export async function createOP(formData: FormData) {
   if (compatError) throw new Error(compatError.message);
   if (!compat) throw new Error("Máquina selecionada não é compatível com a peça");
 
-  const tempoEstimadoMinutos = peca.tempo_padrao_por_unidade * quantidadePlanejada;
+  const tempoEstimadoSegundos = peca.tempo_padrao_segundos * quantidadePlanejada;
 
   const { data: op, error } = await supabase
     .from("ordens_producao")
@@ -41,7 +41,7 @@ export async function createOP(formData: FormData) {
       peca_id: pecaId,
       maquina_id: maquinaId,
       quantidade_planejada: quantidadePlanejada,
-      tempo_estimado_minutos: tempoEstimadoMinutos,
+      tempo_estimado_segundos: tempoEstimadoSegundos,
       criado_por: gestor.id,
     })
     .select("numero")

@@ -1,14 +1,15 @@
-"use client";
+﻿"use client";
 
 import { useMemo, useState } from "react";
 import { createOP } from "../actions";
+import { formatSegundos } from "@/lib/tempo";
 import type { Maquina } from "@/types/database";
 
 interface PecaComRelacoes {
   id: string;
   codigo: string;
   descricao: string;
-  tempo_padrao_por_unidade: number;
+  tempo_padrao_segundos: number;
   pecas_maquinas: { maquina_id: string }[];
   peca_materiais: { material: string; quantidade_por_unidade: number; unidade_medida: string }[];
 }
@@ -26,9 +27,7 @@ export function OPForm({ pecas, maquinas }: { pecas: PecaComRelacoes[]; maquinas
   }, [peca, maquinas]);
 
   const qtd = Number(quantidade) || 0;
-  const tempoEstimadoMin = peca ? peca.tempo_padrao_por_unidade * qtd : 0;
-  const horas = Math.floor(tempoEstimadoMin / 60);
-  const minutos = Math.round(tempoEstimadoMin % 60);
+  const tempoEstimadoSegundos = peca ? peca.tempo_padrao_segundos * qtd : 0;
 
   return (
     <form action={createOP} className="space-y-6">
@@ -67,7 +66,7 @@ export function OPForm({ pecas, maquinas }: { pecas: PecaComRelacoes[]; maquinas
       <div className="rounded-xl border border-slate-200 bg-white p-4">
         <label className="mb-1 block text-sm font-medium text-slate-700">Máquina</label>
         {!peca ? (
-          <p className="text-sm text-slate-500">Selecione uma peça primeiro.</p>
+          <p className="text-sm text-slate-600">Selecione uma peça primeiro.</p>
         ) : maquinasCompativeis.length === 0 ? (
           <p className="text-sm text-red-600">
             Nenhuma máquina compatível cadastrada para esta peça.
@@ -92,8 +91,7 @@ export function OPForm({ pecas, maquinas }: { pecas: PecaComRelacoes[]; maquinas
         <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900">
           <p className="font-semibold">Cálculo automático</p>
           <p className="mt-1">
-            Tempo estimado: <strong>{horas}h{minutos.toString().padStart(2, "0")}min</strong>{" "}
-            ({tempoEstimadoMin.toFixed(2)} min)
+            Tempo estimado: <strong>{formatSegundos(tempoEstimadoSegundos)}</strong> (h:min:s)
           </p>
           {peca.peca_materiais.length > 0 ? (
             <div className="mt-2">

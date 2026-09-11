@@ -1,7 +1,8 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import { createPeca } from "../actions";
+import { TimeInput } from "@/components/TimeInput";
 import type { Maquina } from "@/types/database";
 
 interface MaterialRow {
@@ -51,17 +52,7 @@ export function PecaForm({ maquinas }: { maquinas: Maquina[] }) {
           />
         </div>
         <div>
-          <label className="mb-1 block text-sm font-medium text-slate-700">
-            Tempo padrão por unidade (minutos)
-          </label>
-          <input
-            name="tempo_padrao_por_unidade"
-            type="number"
-            step="0.0001"
-            min="0.0001"
-            required
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
-          />
+          <TimeInput name="tempo_padrao_segundos" label="Tempo padrão por unidade (h:min:s)" required />
         </div>
         <div className="sm:col-span-2">
           <label className="mb-1 block text-sm font-medium text-slate-700">Descrição</label>
@@ -76,7 +67,7 @@ export function PecaForm({ maquinas }: { maquinas: Maquina[] }) {
       <div className="rounded-xl border border-slate-200 bg-white p-4">
         <h2 className="mb-3 text-sm font-semibold text-slate-900">Máquinas compatíveis</h2>
         {maquinas.length === 0 ? (
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-slate-600">
             Nenhuma máquina cadastrada ainda. Cadastre máquinas antes de criar a peça.
           </p>
         ) : (
@@ -107,7 +98,7 @@ export function PecaForm({ maquinas }: { maquinas: Maquina[] }) {
           {materiais.map((row, i) => (
             <div key={i} className="flex flex-wrap items-end gap-2">
               <div className="flex-1">
-                <label className="mb-1 block text-xs text-slate-500">Material</label>
+                <label className="mb-1 block text-xs text-slate-600">Material</label>
                 <input
                   value={row.material}
                   onChange={(e) => updateRow(i, { material: e.target.value })}
@@ -115,7 +106,7 @@ export function PecaForm({ maquinas }: { maquinas: Maquina[] }) {
                 />
               </div>
               <div className="w-32">
-                <label className="mb-1 block text-xs text-slate-500">Qtd./unidade</label>
+                <label className="mb-1 block text-xs text-slate-600">Qtd./unidade</label>
                 <input
                   type="number"
                   step="0.0001"
@@ -126,7 +117,7 @@ export function PecaForm({ maquinas }: { maquinas: Maquina[] }) {
                 />
               </div>
               <div className="w-24">
-                <label className="mb-1 block text-xs text-slate-500">Unidade</label>
+                <label className="mb-1 block text-xs text-slate-600">Unidade</label>
                 <input
                   value={row.unidade_medida}
                   onChange={(e) => updateRow(i, { unidade_medida: e.target.value })}

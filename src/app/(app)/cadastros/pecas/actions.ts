@@ -10,7 +10,7 @@ export async function createPeca(formData: FormData) {
 
   const codigo = String(formData.get("codigo") ?? "").trim();
   const descricao = String(formData.get("descricao") ?? "").trim();
-  const tempoPadrao = Number(formData.get("tempo_padrao_por_unidade"));
+  const tempoPadrao = Number(formData.get("tempo_padrao_segundos"));
   const maquinaIds = formData.getAll("maquina_id").map(String);
 
   const materiais = formData.get("materiais_json")
@@ -32,7 +32,7 @@ export async function createPeca(formData: FormData) {
 
   const { data: peca, error } = await supabase
     .from("pecas")
-    .insert({ codigo, descricao, tempo_padrao_por_unidade: tempoPadrao })
+    .insert({ codigo, descricao, tempo_padrao_segundos: tempoPadrao })
     .select("id")
     .single();
 

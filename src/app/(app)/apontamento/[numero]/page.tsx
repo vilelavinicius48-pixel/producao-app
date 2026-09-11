@@ -43,6 +43,19 @@ export default async function ApontamentoOPPage({
     .eq("ativo", true)
     .order("descricao");
 
+  const { data: operadores } = await supabase
+    .from("operadores")
+    .select("*")
+    .eq("perfil", "operador")
+    .eq("ativo", true)
+    .order("nome");
+
+  const { data: progresso } = await supabase
+    .from("op_progresso")
+    .select("*")
+    .eq("op_id", op.id)
+    .maybeSingle();
+
   const operadorInfo = apontamentoAberto?.operadores as unknown as { nome: string } | null;
 
   return (
@@ -56,13 +69,16 @@ export default async function ApontamentoOPPage({
       <p className="mt-1 text-sm text-slate-600">
         {peca.codigo} — {peca.descricao} · Máquina {maquina.codigo}
       </p>
-      <p className="text-sm text-slate-600">Quantidade planejada: {op.quantidade_planejada}</p>
+      <p className="text-sm font-medium text-slate-700">
+        Produzido: {progresso?.quantidade_produzida_total ?? 0} / {op.quantidade_planejada}
+      </p>
 
       <div className="mt-6">
         <ApontamentoAcoes
           opId={op.id}
           numero={numero}
           status={op.status}
+          operadores={operadores ?? []}
           apontamentoAberto={
             apontamentoAberto
               ? {

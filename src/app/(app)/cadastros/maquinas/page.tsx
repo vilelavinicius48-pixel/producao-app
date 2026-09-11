@@ -42,7 +42,7 @@ export default async function MaquinasPage() {
 
       <div className="mt-6 overflow-x-auto rounded-xl border border-slate-200 bg-white">
         <table className="w-full text-left text-sm">
-          <thead className="bg-slate-50 text-slate-500">
+          <thead className="bg-slate-50 text-slate-600">
             <tr>
               <th className="px-4 py-3">Código</th>
               <th className="px-4 py-3">Nome</th>
@@ -58,7 +58,7 @@ export default async function MaquinasPage() {
                 <td className="px-4 py-3">
                   <span
                     className={`rounded-full px-2 py-1 text-xs font-medium ${
-                      m.ativo ? "bg-green-100 text-green-700" : "bg-slate-100 text-slate-500"
+                      m.ativo ? "bg-green-100 text-green-700" : "bg-slate-100 text-slate-600"
                     }`}
                   >
                     {m.ativo ? "Ativa" : "Inativa"}
@@ -77,7 +77,7 @@ export default async function MaquinasPage() {
             ))}
             {maquinas?.length === 0 && (
               <tr>
-                <td colSpan={4} className="px-4 py-6 text-center text-slate-400">
+                <td colSpan={4} className="px-4 py-6 text-center text-slate-500">
                   Nenhuma máquina cadastrada
                 </td>
               </tr>

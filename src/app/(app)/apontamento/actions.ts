@@ -13,9 +13,15 @@ export async function iniciarApontamentoAction(formData: FormData) {
   await requireOperador();
   const opId = String(formData.get("op_id"));
   const numero = String(formData.get("numero"));
+  const operadorId = String(formData.get("operador_id") ?? "");
+
+  if (!operadorId) throw new Error("Selecione o operador");
 
   const supabase = await createClient();
-  const { error } = await supabase.rpc("iniciar_apontamento", { p_op_id: opId });
+  const { error } = await supabase.rpc("iniciar_apontamento", {
+    p_op_id: opId,
+    p_operador_id: operadorId,
+  });
   if (error) friendlyError(error.message);
 
   revalidatePath(`/apontamento/${numero}`);
@@ -65,9 +71,16 @@ export async function voltarParadaAction(formData: FormData) {
   const opId = String(formData.get("op_id"));
   const numero = String(formData.get("numero"));
   const motivoId = String(formData.get("motivo_id"));
+  const operadorId = String(formData.get("operador_id") ?? "");
+
+  if (!operadorId) throw new Error("Selecione o operador");
 
   const supabase = await createClient();
-  const { error } = await supabase.rpc("voltar_parada", { p_op_id: opId, p_motivo_id: motivoId });
+  const { error } = await supabase.rpc("voltar_parada", {
+    p_op_id: opId,
+    p_motivo_id: motivoId,
+    p_operador_id: operadorId,
+  });
   if (error) friendlyError(error.message);
 
   revalidatePath(`/apontamento/${numero}`);

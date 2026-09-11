@@ -1,4 +1,4 @@
-import { login } from "./actions";
+﻿import { login } from "./actions";
 
 export default async function LoginPage({
   searchParams,
@@ -11,7 +11,7 @@ export default async function LoginPage({
     <div className="flex min-h-screen items-center justify-center bg-slate-100 px-4">
       <div className="w-full max-w-sm rounded-2xl bg-white p-8 shadow-md">
         <h1 className="mb-1 text-2xl font-bold text-slate-900">Produção</h1>
-        <p className="mb-6 text-sm text-slate-500">Entre com sua matrícula e senha</p>
+        <p className="mb-6 text-sm text-slate-600">Entre com sua matrícula e senha</p>
 
         {error && (
           <div className="mb-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>

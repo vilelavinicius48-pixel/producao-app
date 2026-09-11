@@ -35,7 +35,7 @@ export default async function MotivosParadaPage() {
 
       <div className="mt-6 overflow-x-auto rounded-xl border border-slate-200 bg-white">
         <table className="w-full text-left text-sm">
-          <thead className="bg-slate-50 text-slate-500">
+          <thead className="bg-slate-50 text-slate-600">
             <tr>
               <th className="px-4 py-3">Descrição</th>
               <th className="px-4 py-3">Status</th>
@@ -49,7 +49,7 @@ export default async function MotivosParadaPage() {
                 <td className="px-4 py-3">
                   <span
                     className={`rounded-full px-2 py-1 text-xs font-medium ${
-                      m.ativo ? "bg-green-100 text-green-700" : "bg-slate-100 text-slate-500"
+                      m.ativo ? "bg-green-100 text-green-700" : "bg-slate-100 text-slate-600"
                     }`}
                   >
                     {m.ativo ? "Ativo" : "Inativo"}
@@ -68,7 +68,7 @@ export default async function MotivosParadaPage() {
             ))}
             {motivos?.length === 0 && (
               <tr>
-                <td colSpan={3} className="px-4 py-6 text-center text-slate-400">
+                <td colSpan={3} className="px-4 py-6 text-center text-slate-500">
                   Nenhum motivo cadastrado
                 </td>
               </tr>

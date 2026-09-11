@@ -24,7 +24,7 @@ export default async function OrdensPage() {
 
       <div className="mt-6 overflow-x-auto rounded-xl border border-slate-200 bg-white">
         <table className="w-full min-w-[640px] text-left text-sm">
-          <thead className="bg-slate-50 text-slate-500">
+          <thead className="bg-slate-50 text-slate-600">
             <tr>
               <th className="px-4 py-3">Número</th>
               <th className="px-4 py-3">Peça</th>
@@ -57,7 +57,7 @@ export default async function OrdensPage() {
             })}
             {ops?.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-4 py-6 text-center text-slate-400">
+                <td colSpan={5} className="px-4 py-6 text-center text-slate-500">
                   Nenhuma OP cadastrada
                 </td>
               </tr>

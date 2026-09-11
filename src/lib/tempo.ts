@@ -1,0 +1,7 @@
+export function formatSegundos(totalSegundos: number): string {
+  const total = Math.max(Math.round(totalSegundos), 0);
+  const h = Math.floor(total / 3600);
+  const m = Math.floor((total % 3600) / 60);
+  const s = total % 60;
+  return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
+}

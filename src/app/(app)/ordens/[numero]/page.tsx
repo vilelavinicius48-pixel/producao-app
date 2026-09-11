@@ -1,12 +1,7 @@
-import { notFound } from "next/navigation";
+﻿import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { STATUS_LABEL, STATUS_BADGE_CLASS } from "@/lib/op-status";
-
-function formatMinutos(min: number) {
-  const h = Math.floor(min / 60);
-  const m = Math.round(min % 60);
-  return `${h}h${m.toString().padStart(2, "0")}min`;
-}
+import { formatSegundos } from "@/lib/tempo";
 
 function formatDataHora(iso: string | null) {
   if (!iso) return "-";
@@ -39,7 +34,7 @@ export default async function OPDetalhePage({
     id: string;
     codigo: string;
     descricao: string;
-    tempo_padrao_por_unidade: number;
+    tempo_padrao_segundos: number;
   };
   const maquina = op.maquinas as unknown as { codigo: string; nome: string };
 
@@ -62,14 +57,16 @@ export default async function OPDetalhePage({
 
   const produzidaTotal = (apontamentos ?? []).reduce((s, a) => s + (a.quantidade_produzida ?? 0), 0);
   const refugadaTotal = (apontamentos ?? []).reduce((s, a) => s + (a.quantidade_refugada ?? 0), 0);
-  const tempoRodadoTotal = (apontamentos ?? []).reduce((s, a) => {
+  const tempoRodadoTotalSegundos = (apontamentos ?? []).reduce((s, a) => {
     if (!a.timestamp_stop) return s;
-    return s + (new Date(a.timestamp_stop).getTime() - new Date(a.timestamp_start).getTime()) / 60000;
+    return s + (new Date(a.timestamp_stop).getTime() - new Date(a.timestamp_start).getTime()) / 1000;
   }, 0);
   const saldo = op.quantidade_planejada - produzidaTotal;
   const eficienciaGlobal =
-    tempoRodadoTotal > 0 ? (peca.tempo_padrao_por_unidade * produzidaTotal) / tempoRodadoTotal : null;
-  const tempoRestanteMin = saldo > 0 ? saldo * peca.tempo_padrao_por_unidade : 0;
+    tempoRodadoTotalSegundos > 0
+      ? (peca.tempo_padrao_segundos * produzidaTotal) / tempoRodadoTotalSegundos
+      : null;
+  const tempoRestanteSegundos = saldo > 0 ? saldo * peca.tempo_padrao_segundos : 0;
 
   return (
     <div>
@@ -85,39 +82,39 @@ export default async function OPDetalhePage({
 
       <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
         <div className="rounded-xl border border-slate-200 bg-white p-4">
-          <p className="text-xs text-slate-500">Qtd. planejada</p>
+          <p className="text-xs text-slate-600">Qtd. planejada</p>
           <p className="text-lg font-semibold text-slate-900">{op.quantidade_planejada}</p>
         </div>
         <div className="rounded-xl border border-slate-200 bg-white p-4">
-          <p className="text-xs text-slate-500">Produzido / Refugado</p>
+          <p className="text-xs text-slate-600">Produzido / Refugado</p>
           <p className="text-lg font-semibold text-slate-900">
             {produzidaTotal} / {refugadaTotal}
           </p>
         </div>
         <div className="rounded-xl border border-slate-200 bg-white p-4">
-          <p className="text-xs text-slate-500">Saldo</p>
+          <p className="text-xs text-slate-600">Saldo</p>
           <p className="text-lg font-semibold text-slate-900">{Math.max(saldo, 0)}</p>
         </div>
         <div className="rounded-xl border border-slate-200 bg-white p-4">
-          <p className="text-xs text-slate-500">Eficiência</p>
+          <p className="text-xs text-slate-600">Eficiência</p>
           <p className="text-lg font-semibold text-slate-900">
             {eficienciaGlobal !== null ? `${(eficienciaGlobal * 100).toFixed(0)}%` : "-"}
           </p>
         </div>
         <div className="rounded-xl border border-slate-200 bg-white p-4">
-          <p className="text-xs text-slate-500">Tempo estimado</p>
-          <p className="text-lg font-semibold text-slate-900">{formatMinutos(op.tempo_estimado_minutos)}</p>
+          <p className="text-xs text-slate-600">Tempo estimado</p>
+          <p className="text-lg font-semibold text-slate-900">{formatSegundos(op.tempo_estimado_segundos)}</p>
         </div>
         <div className="rounded-xl border border-slate-200 bg-white p-4">
-          <p className="text-xs text-slate-500">Tempo rodado</p>
-          <p className="text-lg font-semibold text-slate-900">{formatMinutos(tempoRodadoTotal)}</p>
+          <p className="text-xs text-slate-600">Tempo rodado</p>
+          <p className="text-lg font-semibold text-slate-900">{formatSegundos(tempoRodadoTotalSegundos)}</p>
         </div>
         <div className="rounded-xl border border-slate-200 bg-white p-4">
-          <p className="text-xs text-slate-500">Tempo restante (estimado)</p>
-          <p className="text-lg font-semibold text-slate-900">{formatMinutos(tempoRestanteMin)}</p>
+          <p className="text-xs text-slate-600">Tempo restante (estimado)</p>
+          <p className="text-lg font-semibold text-slate-900">{formatSegundos(tempoRestanteSegundos)}</p>
         </div>
         <div className="rounded-xl border border-slate-200 bg-white p-4">
-          <p className="text-xs text-slate-500">Criada em</p>
+          <p className="text-xs text-slate-600">Criada em</p>
           <p className="text-lg font-semibold text-slate-900">{formatDataHora(op.created_at)}</p>
         </div>
       </div>
@@ -139,12 +136,13 @@ export default async function OPDetalhePage({
         <h2 className="mb-3 text-sm font-semibold text-slate-900">Apontamentos</h2>
         {apontamentos && apontamentos.length > 0 ? (
           <div className="overflow-x-auto">
-          <table className="w-full min-w-[640px] text-left text-sm">
-            <thead className="text-slate-500">
+          <table className="w-full min-w-[720px] text-left text-sm">
+            <thead className="text-slate-600">
               <tr>
                 <th className="py-1 pr-3">Operador</th>
                 <th className="py-1 pr-3">Início</th>
                 <th className="py-1 pr-3">Fim</th>
+                <th className="py-1 pr-3">Esperado</th>
                 <th className="py-1 pr-3">Produzido</th>
                 <th className="py-1 pr-3">Refugado</th>
                 <th className="py-1 pr-3">Eficiência</th>
@@ -158,11 +156,17 @@ export default async function OPDetalhePage({
                   | { resultado: string; observacao: string | null; operadores: { nome: string } | null }[]
                   | null;
                 const inspecao = inspecoes?.[0];
+                const duracaoSegundos = a.timestamp_stop
+                  ? (new Date(a.timestamp_stop).getTime() - new Date(a.timestamp_start).getTime()) / 1000
+                  : null;
+                const esperado =
+                  duracaoSegundos !== null ? Math.round(duracaoSegundos / peca.tempo_padrao_segundos) : null;
                 return (
                   <tr key={a.id}>
                     <td className="py-1 pr-3">{operador?.nome ?? "-"}</td>
                     <td className="py-1 pr-3">{formatDataHora(a.timestamp_start)}</td>
                     <td className="py-1 pr-3">{a.timestamp_stop ? formatDataHora(a.timestamp_stop) : "em andamento"}</td>
+                    <td className="py-1 pr-3">{esperado ?? "-"}</td>
                     <td className="py-1 pr-3">{a.quantidade_produzida ?? "-"}</td>
                     <td className="py-1 pr-3">{a.quantidade_refugada ?? "-"}</td>
                     <td className="py-1 pr-3">
@@ -178,7 +182,7 @@ export default async function OPDetalhePage({
           </table>
           </div>
         ) : (
-          <p className="text-sm text-slate-400">Nenhum apontamento ainda</p>
+          <p className="text-sm text-slate-500">Nenhum apontamento ainda</p>
         )}
       </div>
 
@@ -186,7 +190,7 @@ export default async function OPDetalhePage({
         <h2 className="mb-3 text-sm font-semibold text-slate-900">Paradas</h2>
         {paradas && paradas.length > 0 ? (
           <table className="w-full text-left text-sm">
-            <thead className="text-slate-500">
+            <thead className="text-slate-600">
               <tr>
                 <th className="py-1 pr-3">Início</th>
                 <th className="py-1 pr-3">Fim</th>
@@ -207,7 +211,7 @@ export default async function OPDetalhePage({
             </tbody>
           </table>
         ) : (
-          <p className="text-sm text-slate-400">Nenhuma parada registrada</p>
+          <p className="text-sm text-slate-500">Nenhuma parada registrada</p>
         )}
       </div>
     </div>

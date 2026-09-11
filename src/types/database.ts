@@ -28,7 +28,7 @@ export type Peca = {
   id: string;
   codigo: string;
   descricao: string;
-  tempo_padrao_por_unidade: number;
+  tempo_padrao_segundos: number;
   ativo: boolean;
   created_at: string;
 };
@@ -54,7 +54,7 @@ export type OrdemProducao = {
   peca_id: string;
   maquina_id: string;
   quantidade_planejada: number;
-  tempo_estimado_minutos: number;
+  tempo_estimado_segundos: number;
   status: StatusOP;
   criado_por: string | null;
   created_at: string;
@@ -91,6 +91,12 @@ export type InspecaoQualidade = {
   created_at: string;
 };
 
+export type OpProgresso = {
+  op_id: string;
+  quantidade_produzida_total: number;
+  quantidade_refugada_total: number;
+};
+
 export type Database = {
   public: {
     Tables: {
@@ -114,7 +120,7 @@ export type Database = {
       };
       pecas: {
         Row: Peca;
-        Insert: Partial<Peca> & Pick<Peca, "codigo" | "descricao" | "tempo_padrao_por_unidade">;
+        Insert: Partial<Peca> & Pick<Peca, "codigo" | "descricao" | "tempo_padrao_segundos">;
         Update: Partial<Peca>;
         Relationships: [];
       };
@@ -157,7 +163,7 @@ export type Database = {
       ordens_producao: {
         Row: OrdemProducao;
         Insert: Partial<OrdemProducao> &
-          Pick<OrdemProducao, "peca_id" | "maquina_id" | "quantidade_planejada" | "tempo_estimado_minutos">;
+          Pick<OrdemProducao, "peca_id" | "maquina_id" | "quantidade_planejada" | "tempo_estimado_segundos">;
         Update: Partial<OrdemProducao>;
         Relationships: [
           {
@@ -234,10 +240,15 @@ export type Database = {
         ];
       };
     };
-    Views: Record<string, never>;
+    Views: {
+      op_progresso: {
+        Row: OpProgresso;
+        Relationships: [];
+      };
+    };
     Functions: {
       iniciar_apontamento: {
-        Args: { p_op_id: string };
+        Args: { p_op_id: string; p_operador_id: string };
         Returns: Apontamento;
       };
       parar_producao: {
@@ -257,7 +268,7 @@ export type Database = {
         Returns: Apontamento;
       };
       voltar_parada: {
-        Args: { p_op_id: string; p_motivo_id: string };
+        Args: { p_op_id: string; p_motivo_id: string; p_operador_id: string };
         Returns: Apontamento;
       };
     };
