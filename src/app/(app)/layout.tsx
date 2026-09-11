@@ -5,8 +5,6 @@ import { logout } from "@/app/login/actions";
 import { MobileNav } from "./MobileNav";
 
 const NAV_ITEMS: { href: string; label: string; perfis: Array<"gestor" | "operador" | "qualidade"> }[] = [
-  { href: "/", label: "Início", perfis: ["gestor", "operador", "qualidade"] },
-  { href: "/dashboard", label: "Painel", perfis: ["gestor", "operador", "qualidade"] },
   { href: "/apontamento", label: "Apontamento", perfis: ["gestor", "operador"] },
   { href: "/ordens", label: "Ordens de produção", perfis: ["gestor"] },
   { href: "/qualidade", label: "Qualidade", perfis: ["qualidade"] },
