@@ -3,6 +3,7 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  color-scheme: light;
 }
 
 @theme inline {
@@ -12,11 +13,15 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/*
+  Este app ainda não tem um modo escuro desenhado — todos os componentes
+  usam cores claras fixas (bg-white, text-slate-900, etc). Sem forçar
+  color-scheme: light, navegadores mobile (principalmente Chrome/Android)
+  aplicam um "dark mode automático" que reescreve texto/fundo por conta
+  própria e quebra o contraste só no celular.
+*/
+html {
+  color-scheme: light;
 }
 
 body {

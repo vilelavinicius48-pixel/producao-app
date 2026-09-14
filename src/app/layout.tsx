@@ -15,6 +15,9 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Produção",
   description: "Acompanhamento de produção em tempo real",
+  other: {
+    "color-scheme": "light",
+  },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
