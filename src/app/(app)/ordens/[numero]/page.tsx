@@ -8,12 +8,6 @@ function formatDataHora(iso: string | null) {
   return new Date(iso).toLocaleString("pt-BR");
 }
 
-const RESULTADO_LABEL: Record<string, string> = {
-  aprovado: "Aprovado",
-  reprovado: "Reprovado",
-  retrabalho: "Retrabalho",
-};
-
 export default async function OPDetalhePage({
   params,
 }: {
@@ -45,7 +39,9 @@ export default async function OPDetalhePage({
 
   const { data: apontamentos } = await supabase
     .from("apontamentos")
-    .select("*, operadores(nome), inspecoes_qualidade(resultado, observacao, avaliador_id, operadores(nome))")
+    .select(
+      "*, operadores(nome), inspecoes_qualidade(quantidade_aprovada, quantidade_reprovada, quantidade_retrabalho, observacao, avaliador_id, operadores(nome))"
+    )
     .eq("op_id", op.id)
     .order("timestamp_start", { ascending: true });
 
@@ -153,7 +149,13 @@ export default async function OPDetalhePage({
               {apontamentos.map((a) => {
                 const operador = a.operadores as unknown as { nome: string } | null;
                 const inspecoes = a.inspecoes_qualidade as unknown as
-                  | { resultado: string; observacao: string | null; operadores: { nome: string } | null }[]
+                  | {
+                      quantidade_aprovada: number;
+                      quantidade_reprovada: number;
+                      quantidade_retrabalho: number;
+                      observacao: string | null;
+                      operadores: { nome: string } | null;
+                    }[]
                   | null;
                 const inspecao = inspecoes?.[0];
                 const duracaoSegundos = a.timestamp_stop
@@ -173,7 +175,15 @@ export default async function OPDetalhePage({
                       {a.eficiencia !== null ? `${(a.eficiencia * 100).toFixed(0)}%` : "-"}
                     </td>
                     <td className="py-1 pr-3">
-                      {inspecao ? RESULTADO_LABEL[inspecao.resultado] : "pendente"}
+                      {inspecao ? (
+                        <span className="whitespace-nowrap">
+                          <span className="text-green-700">A:{inspecao.quantidade_aprovada}</span>{" "}
+                          <span className="text-red-700">R:{inspecao.quantidade_reprovada}</span>{" "}
+                          <span className="text-amber-700">Rt:{inspecao.quantidade_retrabalho}</span>
+                        </span>
+                      ) : (
+                        "pendente"
+                      )}
                     </td>
                   </tr>
                 );

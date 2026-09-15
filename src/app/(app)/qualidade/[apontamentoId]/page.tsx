@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { requireQualidade } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { createInspecao } from "../actions";
+import { InspecaoForm } from "./InspecaoForm";
 
 export default async function InspecionarPage({
   params,
@@ -41,46 +41,9 @@ export default async function InspecionarPage({
       </div>
 
       {jaInspecionado ? (
-        <p className="mt-6 text-slate-500">Este apontamento já foi inspecionado.</p>
+        <p className="mt-6 text-slate-600">Este apontamento já foi inspecionado.</p>
       ) : (
-        <form action={createInspecao} className="mt-6 space-y-4">
-          <input type="hidden" name="apontamento_id" value={apontamento.id} />
-
-          <div>
-            <label className="mb-2 block text-sm font-medium text-slate-700">Resultado</label>
-            <div className="flex gap-3">
-              {[
-                { value: "aprovado", label: "Aprovado", color: "green" },
-                { value: "reprovado", label: "Reprovado", color: "red" },
-                { value: "retrabalho", label: "Retrabalho", color: "amber" },
-              ].map((r) => (
-                <label
-                  key={r.value}
-                  className="flex-1 cursor-pointer rounded-xl border border-slate-300 px-4 py-4 text-center text-sm font-semibold has-[:checked]:border-blue-500 has-[:checked]:bg-blue-50"
-                >
-                  <input type="radio" name="resultado" value={r.value} required className="sr-only" />
-                  {r.label}
-                </label>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <label className="mb-1 block text-sm font-medium text-slate-700">Observação</label>
-            <textarea
-              name="observacao"
-              rows={4}
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
-            />
-          </div>
-
-          <button
-            type="submit"
-            className="w-full rounded-xl bg-blue-600 px-4 py-4 text-lg font-bold text-white hover:bg-blue-700"
-          >
-            Registrar inspeção
-          </button>
-        </form>
+        <InspecaoForm apontamentoId={apontamento.id} quantidadeProduzida={apontamento.quantidade_produzida ?? 0} />
       )}
     </div>
   );

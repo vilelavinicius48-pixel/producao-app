@@ -139,15 +139,35 @@ export function MobileBottomNav({
             style={{ marginBottom: "env(safe-area-inset-bottom)" }}
           >
             <div className="mx-auto mb-2 h-1 w-10 rounded-full bg-slate-300" />
-            {demais.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="block rounded-lg px-4 py-3 text-base font-medium text-slate-700 active:bg-slate-100"
-              >
-                {item.label}
-              </Link>
-            ))}
+            {demais
+              .filter((item) => !item.href.startsWith("/cadastros"))
+              .map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className="block rounded-lg px-4 py-3 text-base font-medium text-slate-700 active:bg-slate-100"
+                >
+                  {item.label}
+                </Link>
+              ))}
+            {demais.some((item) => item.href.startsWith("/cadastros")) && (
+              <>
+                <p className="mt-2 px-4 pb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  Cadastros
+                </p>
+                {demais
+                  .filter((item) => item.href.startsWith("/cadastros"))
+                  .map((item) => (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className="block rounded-lg px-4 py-3 text-base font-medium text-slate-700 active:bg-slate-100"
+                    >
+                      {item.label}
+                    </Link>
+                  ))}
+              </>
+            )}
           </div>
         </>
       )}

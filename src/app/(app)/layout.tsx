@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { getOperadorAtual } from "@/lib/auth";
 import { logout } from "@/app/login/actions";
 import { MobileBottomNav } from "./MobileBottomNav";
+import { CadastrosMenu } from "./CadastrosMenu";
 import type { Perfil } from "@/types/database";
 
 const NAV_ITEMS: { href: string; label: string; perfis: Perfil[] }[] = [
@@ -46,6 +47,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const primariosHrefs = new Set(primarios.map((p) => p.href));
   const demais = visibleItems.filter((item) => !primariosHrefs.has(item.href));
 
+  const cadastroItems = visibleItems.filter((item) => item.href.startsWith("/cadastros"));
+  const outrosItems = visibleItems.filter((item) => !item.href.startsWith("/cadastros"));
+
   return (
     <div className="flex min-h-screen flex-col">
       <header className="sticky top-0 z-30 border-b border-slate-200 bg-white">
@@ -54,8 +58,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             <Link href="/" className="shrink-0 text-lg font-bold text-slate-900">
               Produção
             </Link>
-            <nav className="hidden flex-wrap gap-1 sm:flex">
-              {visibleItems.map((item) => (
+            <nav className="hidden flex-wrap items-center gap-1 sm:flex">
+              {outrosItems.map((item) => (
                 <Link
                   key={item.href}
                   href={item.href}
@@ -64,6 +68,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
                   {item.label}
                 </Link>
               ))}
+              {cadastroItems.length > 0 && <CadastrosMenu items={cadastroItems} />}
             </nav>
           </div>
 

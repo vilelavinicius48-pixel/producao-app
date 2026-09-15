@@ -80,12 +80,12 @@ export type Parada = {
   motivo_id: string | null;
 };
 
-export type ResultadoInspecao = "aprovado" | "reprovado" | "retrabalho";
-
 export type InspecaoQualidade = {
   id: string;
   apontamento_id: string;
-  resultado: ResultadoInspecao;
+  quantidade_aprovada: number;
+  quantidade_reprovada: number;
+  quantidade_retrabalho: number;
   observacao: string | null;
   avaliador_id: string;
   created_at: string;
@@ -226,8 +226,7 @@ export type Database = {
       };
       inspecoes_qualidade: {
         Row: InspecaoQualidade;
-        Insert: Partial<InspecaoQualidade> &
-          Pick<InspecaoQualidade, "apontamento_id" | "resultado" | "avaliador_id">;
+        Insert: Partial<InspecaoQualidade> & Pick<InspecaoQualidade, "apontamento_id" | "avaliador_id">;
         Update: Partial<InspecaoQualidade>;
         Relationships: [
           {

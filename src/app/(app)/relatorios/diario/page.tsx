@@ -1,4 +1,4 @@
-﻿import { requireGestor } from "@/lib/auth";
+import { requireGestor } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { formatSegundos } from "@/lib/tempo";
 import { EficienciaChart } from "@/components/EficienciaChart";
@@ -10,7 +10,24 @@ function hojeISO() {
   return local.toISOString().slice(0, 10);
 }
 
-type Agregado = { tempoRodado: number; tempoParado: number; tempoPadraoGanho: number };
+type Agregado = {
+  tempoRodado: number;
+  tempoParado: number;
+  tempoPadraoGanho: number;
+  qtdAprovada: number;
+  qtdReprovada: number;
+  qtdRetrabalho: number;
+};
+
+function novoAgregado(): Agregado {
+  return { tempoRodado: 0, tempoParado: 0, tempoPadraoGanho: 0, qtdAprovada: 0, qtdReprovada: 0, qtdRetrabalho: 0 };
+}
+
+function taxaAprovacao(agg?: Agregado) {
+  if (!agg) return null;
+  const totalInspecionado = agg.qtdAprovada + agg.qtdReprovada + agg.qtdRetrabalho;
+  return totalInspecionado > 0 ? agg.qtdAprovada / totalInspecionado : null;
+}
 
 export default async function RelatorioDiarioPage({
   searchParams,
@@ -33,7 +50,7 @@ export default async function RelatorioDiarioPage({
       supabase
         .from("apontamentos")
         .select(
-          "timestamp_start, timestamp_stop, quantidade_produzida, operador_id, operadores(nome), ordens_producao(maquina_id, pecas(tempo_padrao_segundos))"
+          "timestamp_start, timestamp_stop, quantidade_produzida, operador_id, operadores(nome), ordens_producao(maquina_id, pecas(tempo_padrao_segundos)), inspecoes_qualidade(quantidade_aprovada, quantidade_reprovada, quantidade_retrabalho)"
         )
         .not("timestamp_stop", "is", null)
         .gte("timestamp_stop", inicioDia.toISOString())
@@ -62,11 +79,11 @@ export default async function RelatorioDiarioPage({
   const porOperador = new Map<string, Agregado & { nome: string }>();
 
   function getMaquina(id: string): Agregado {
-    if (!porMaquina.has(id)) porMaquina.set(id, { tempoRodado: 0, tempoParado: 0, tempoPadraoGanho: 0 });
+    if (!porMaquina.has(id)) porMaquina.set(id, novoAgregado());
     return porMaquina.get(id)!;
   }
   function getOperador(id: string, nome: string) {
-    if (!porOperador.has(id)) porOperador.set(id, { tempoRodado: 0, tempoParado: 0, tempoPadraoGanho: 0, nome });
+    if (!porOperador.has(id)) porOperador.set(id, { ...novoAgregado(), nome });
     return porOperador.get(id)!;
   }
 
@@ -78,16 +95,30 @@ export default async function RelatorioDiarioPage({
     if (!op) continue;
     const segundos = (new Date(a.timestamp_stop!).getTime() - new Date(a.timestamp_start).getTime()) / 1000;
     const padraoGanho = op.pecas.tempo_padrao_segundos * (a.quantidade_produzida ?? 0);
+    const inspecoes = a.inspecoes_qualidade as unknown as
+      | { quantidade_aprovada: number; quantidade_reprovada: number; quantidade_retrabalho: number }[]
+      | null;
+    const inspecao = inspecoes?.[0];
 
     const aggMaquina = getMaquina(op.maquina_id);
     aggMaquina.tempoRodado += segundos;
     aggMaquina.tempoPadraoGanho += padraoGanho;
+    if (inspecao) {
+      aggMaquina.qtdAprovada += inspecao.quantidade_aprovada;
+      aggMaquina.qtdReprovada += inspecao.quantidade_reprovada;
+      aggMaquina.qtdRetrabalho += inspecao.quantidade_retrabalho;
+    }
 
     if (a.operador_id) {
       const operador = a.operadores as unknown as { nome: string } | null;
       const aggOperador = getOperador(a.operador_id, operador?.nome ?? "-");
       aggOperador.tempoRodado += segundos;
       aggOperador.tempoPadraoGanho += padraoGanho;
+      if (inspecao) {
+        aggOperador.qtdAprovada += inspecao.quantidade_aprovada;
+        aggOperador.qtdReprovada += inspecao.quantidade_reprovada;
+        aggOperador.qtdRetrabalho += inspecao.quantidade_retrabalho;
+      }
     }
   }
 
@@ -113,7 +144,8 @@ export default async function RelatorioDiarioPage({
       <h1 className="text-2xl font-bold text-slate-900">Relatório diário</h1>
       <p className="mt-1 text-sm text-slate-600">
         &quot;Tempo padrão (produzido)&quot; é o tempo que deveria ter sido gasto, pelo cadastro da peça, para
-        produzir a quantidade real do período — comparado ao tempo rodado real para calcular a eficiência.
+        produzir a quantidade real do período — comparado ao tempo rodado real para calcular a eficiência. A
+        taxa de qualidade considera apenas o que já foi inspecionado pela qualidade.
       </p>
 
       <form className="mt-4 flex flex-wrap items-end gap-3">
@@ -179,10 +211,24 @@ export default async function RelatorioDiarioPage({
             eficiencia: eficienciaPorOperadorFn(porOperador.get(o.id)),
           }))}
         />
+        <EficienciaChart
+          title="Taxa de aprovação por máquina"
+          items={maquinasVisiveis.map((m) => ({
+            label: `${m.codigo} — ${m.nome}`,
+            eficiencia: taxaAprovacao(porMaquina.get(m.id)),
+          }))}
+        />
+        <EficienciaChart
+          title="Taxa de aprovação por operador"
+          items={operadoresVisiveis.map((o) => ({
+            label: o.nome,
+            eficiencia: taxaAprovacao(porOperador.get(o.id)),
+          }))}
+        />
       </div>
 
       <div className="mt-6 overflow-x-auto rounded-xl border border-slate-200 bg-white">
-        <table className="w-full min-w-[640px] text-left text-sm">
+        <table className="w-full min-w-[820px] text-left text-sm">
           <thead className="bg-slate-50 text-slate-600">
             <tr>
               <th className="px-4 py-3">Máquina</th>
@@ -190,6 +236,8 @@ export default async function RelatorioDiarioPage({
               <th className="px-4 py-3">Tempo parado</th>
               <th className="px-4 py-3">Tempo padrão (produzido)</th>
               <th className="px-4 py-3">Eficiência</th>
+              <th className="px-4 py-3">Aprov./Reprov./Retrab.</th>
+              <th className="px-4 py-3">Taxa qualidade</th>
               <th className="px-4 py-3">Situação</th>
             </tr>
           </thead>
@@ -199,6 +247,7 @@ export default async function RelatorioDiarioPage({
               const teveAtividade = agg && (agg.tempoRodado > 0 || agg.tempoParado > 0);
               const eficiencia = eficienciaPorMaquina(m);
               const atrasado = eficiencia !== null && eficiencia < 1;
+              const taxaQ = taxaAprovacao(agg);
               return (
                 <tr key={m.id}>
                   <td className="px-4 py-3 font-medium text-slate-900">
@@ -208,6 +257,12 @@ export default async function RelatorioDiarioPage({
                   <td className="px-4 py-3">{formatSegundos(agg?.tempoParado ?? 0)}</td>
                   <td className="px-4 py-3">{formatSegundos(agg?.tempoPadraoGanho ?? 0)}</td>
                   <td className="px-4 py-3">{eficiencia !== null ? `${(eficiencia * 100).toFixed(0)}%` : "-"}</td>
+                  <td className="px-4 py-3 whitespace-nowrap">
+                    <span className="text-green-700">{agg?.qtdAprovada ?? 0}</span> /{" "}
+                    <span className="text-red-700">{agg?.qtdReprovada ?? 0}</span> /{" "}
+                    <span className="text-amber-700">{agg?.qtdRetrabalho ?? 0}</span>
+                  </td>
+                  <td className="px-4 py-3">{taxaQ !== null ? `${(taxaQ * 100).toFixed(0)}%` : "-"}</td>
                   <td className="px-4 py-3">
                     {!teveAtividade ? (
                       <span className="text-slate-500">Sem atividade</span>
@@ -226,7 +281,7 @@ export default async function RelatorioDiarioPage({
             })}
             {maquinasVisiveis.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-4 py-6 text-center text-slate-500">
+                <td colSpan={8} className="px-4 py-6 text-center text-slate-500">
                   Nenhuma máquina encontrada
                 </td>
               </tr>
@@ -236,31 +291,40 @@ export default async function RelatorioDiarioPage({
       </div>
 
       <div className="mt-6 overflow-x-auto rounded-xl border border-slate-200 bg-white">
-        <table className="w-full min-w-[560px] text-left text-sm">
+        <table className="w-full min-w-[720px] text-left text-sm">
           <thead className="bg-slate-50 text-slate-600">
             <tr>
               <th className="px-4 py-3">Operador</th>
               <th className="px-4 py-3">Tempo trabalhado</th>
               <th className="px-4 py-3">Tempo padrão (produzido)</th>
               <th className="px-4 py-3">Eficiência</th>
+              <th className="px-4 py-3">Aprov./Reprov./Retrab.</th>
+              <th className="px-4 py-3">Taxa qualidade</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
             {operadoresVisiveis.map((o) => {
               const agg = porOperador.get(o.id);
               const eficiencia = eficienciaPorOperadorFn(agg);
+              const taxaQ = taxaAprovacao(agg);
               return (
                 <tr key={o.id}>
                   <td className="px-4 py-3 font-medium text-slate-900">{o.nome}</td>
                   <td className="px-4 py-3">{formatSegundos(agg?.tempoRodado ?? 0)}</td>
                   <td className="px-4 py-3">{formatSegundos(agg?.tempoPadraoGanho ?? 0)}</td>
                   <td className="px-4 py-3">{eficiencia !== null ? `${(eficiencia * 100).toFixed(0)}%` : "-"}</td>
+                  <td className="px-4 py-3 whitespace-nowrap">
+                    <span className="text-green-700">{agg?.qtdAprovada ?? 0}</span> /{" "}
+                    <span className="text-red-700">{agg?.qtdReprovada ?? 0}</span> /{" "}
+                    <span className="text-amber-700">{agg?.qtdRetrabalho ?? 0}</span>
+                  </td>
+                  <td className="px-4 py-3">{taxaQ !== null ? `${(taxaQ * 100).toFixed(0)}%` : "-"}</td>
                 </tr>
               );
             })}
             {operadoresVisiveis.length === 0 && (
               <tr>
-                <td colSpan={4} className="px-4 py-6 text-center text-slate-500">
+                <td colSpan={6} className="px-4 py-6 text-center text-slate-500">
                   Nenhum operador encontrado
                 </td>
               </tr>
