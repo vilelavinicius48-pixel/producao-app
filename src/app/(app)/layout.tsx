@@ -9,7 +9,7 @@ import type { Perfil } from "@/types/database";
 const NAV_ITEMS: { href: string; label: string; perfis: Perfil[] }[] = [
   { href: "/apontamento", label: "Apontamento", perfis: ["gestor", "operador"] },
   { href: "/ordens", label: "Ordens de produção", perfis: ["gestor"] },
-  { href: "/qualidade", label: "Qualidade", perfis: ["qualidade"] },
+  { href: "/qualidade", label: "Qualidade", perfis: ["gestor", "qualidade"] },
   { href: "/historico", label: "Histórico", perfis: ["gestor", "qualidade"] },
   { href: "/relatorios/diario", label: "Relatório diário", perfis: ["gestor"] },
   { href: "/cadastros/pecas", label: "Peças", perfis: ["gestor"] },

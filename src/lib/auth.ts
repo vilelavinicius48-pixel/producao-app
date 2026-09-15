@@ -36,7 +36,7 @@ export async function requireOperador(): Promise<Operador> {
 
 export async function requireQualidade(): Promise<Operador> {
   const operador = await getOperadorAtual();
-  if (!operador || operador.perfil !== "qualidade") {
+  if (!operador || (operador.perfil !== "qualidade" && operador.perfil !== "gestor")) {
     redirect("/");
   }
   return operador;
