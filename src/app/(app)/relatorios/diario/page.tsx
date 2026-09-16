@@ -95,10 +95,11 @@ export default async function RelatorioDiarioPage({
     if (!op) continue;
     const segundos = (new Date(a.timestamp_stop!).getTime() - new Date(a.timestamp_start).getTime()) / 1000;
     const padraoGanho = op.pecas.tempo_padrao_segundos * (a.quantidade_produzida ?? 0);
-    const inspecoes = a.inspecoes_qualidade as unknown as
-      | { quantidade_aprovada: number; quantidade_reprovada: number; quantidade_retrabalho: number }[]
-      | null;
-    const inspecao = inspecoes?.[0];
+    const inspecao = a.inspecoes_qualidade as unknown as {
+      quantidade_aprovada: number;
+      quantidade_reprovada: number;
+      quantidade_retrabalho: number;
+    } | null;
 
     const aggMaquina = getMaquina(op.maquina_id);
     aggMaquina.tempoRodado += segundos;

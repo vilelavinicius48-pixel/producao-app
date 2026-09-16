@@ -22,7 +22,7 @@ export default async function InspecionarPage({
 
   if (!apontamento || !apontamento.timestamp_stop) notFound();
 
-  const jaInspecionado = (apontamento.inspecoes_qualidade as unknown as { id: string }[]).length > 0;
+  const jaInspecionado = (apontamento.inspecoes_qualidade as unknown as { id: string } | null) !== null;
   const op = apontamento.ordens_producao as unknown as {
     numero: number;
     pecas: { codigo: string; descricao: string };

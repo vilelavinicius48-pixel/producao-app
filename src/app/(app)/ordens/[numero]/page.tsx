@@ -148,16 +148,13 @@ export default async function OPDetalhePage({
             <tbody className="divide-y divide-slate-100">
               {apontamentos.map((a) => {
                 const operador = a.operadores as unknown as { nome: string } | null;
-                const inspecoes = a.inspecoes_qualidade as unknown as
-                  | {
-                      quantidade_aprovada: number;
-                      quantidade_reprovada: number;
-                      quantidade_retrabalho: number;
-                      observacao: string | null;
-                      operadores: { nome: string } | null;
-                    }[]
-                  | null;
-                const inspecao = inspecoes?.[0];
+                const inspecao = a.inspecoes_qualidade as unknown as {
+                  quantidade_aprovada: number;
+                  quantidade_reprovada: number;
+                  quantidade_retrabalho: number;
+                  observacao: string | null;
+                  operadores: { nome: string } | null;
+                } | null;
                 const duracaoSegundos = a.timestamp_stop
                   ? (new Date(a.timestamp_stop).getTime() - new Date(a.timestamp_start).getTime()) / 1000
                   : null;

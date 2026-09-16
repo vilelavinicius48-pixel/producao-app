@@ -16,8 +16,8 @@ export default async function QualidadePage() {
     .limit(100);
 
   const pendentes = (apontamentos ?? []).filter((a) => {
-    const inspecoes = a.inspecoes_qualidade as unknown as { id: string }[];
-    return inspecoes.length === 0;
+    const inspecao = a.inspecoes_qualidade as unknown as { id: string } | null;
+    return inspecao === null;
   });
 
   return (
