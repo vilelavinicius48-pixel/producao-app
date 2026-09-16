@@ -46,7 +46,7 @@ export type PecaMaterial = {
   unidade_medida: string;
 };
 
-export type StatusOP = "aberta" | "em_producao" | "parada" | "concluida";
+export type StatusOP = "aberta" | "setup" | "em_producao" | "parada" | "concluida";
 
 export type OrdemProducao = {
   id: string;
@@ -59,6 +59,15 @@ export type OrdemProducao = {
   criado_por: string | null;
   created_at: string;
   concluida_em: string | null;
+  setup_concluido_em: string | null;
+};
+
+export type Setup = {
+  id: string;
+  op_id: string;
+  operador_id: string;
+  timestamp_inicio: string;
+  timestamp_fim: string | null;
 };
 
 export type Apontamento = {
@@ -224,6 +233,27 @@ export type Database = {
           },
         ];
       };
+      setups: {
+        Row: Setup;
+        Insert: Partial<Setup> & Pick<Setup, "op_id" | "operador_id">;
+        Update: Partial<Setup>;
+        Relationships: [
+          {
+            foreignKeyName: "setups_op_id_fkey";
+            columns: ["op_id"];
+            isOneToOne: false;
+            referencedRelation: "ordens_producao";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "setups_operador_id_fkey";
+            columns: ["operador_id"];
+            isOneToOne: false;
+            referencedRelation: "operadores";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       inspecoes_qualidade: {
         Row: InspecaoQualidade;
         Insert: Partial<InspecaoQualidade> & Pick<InspecaoQualidade, "apontamento_id" | "avaliador_id">;
@@ -246,6 +276,14 @@ export type Database = {
       };
     };
     Functions: {
+      iniciar_setup: {
+        Args: { p_op_id: string; p_operador_id: string };
+        Returns: Setup;
+      };
+      finalizar_setup: {
+        Args: { p_setup_id: string };
+        Returns: Apontamento;
+      };
       iniciar_apontamento: {
         Args: { p_op_id: string; p_operador_id: string };
         Returns: Apontamento;

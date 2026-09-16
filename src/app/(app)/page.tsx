@@ -1,28 +1,38 @@
-﻿import { createClient } from "@/lib/supabase/server";
+import { createClient } from "@/lib/supabase/server";
 import { Cronometro } from "@/components/Cronometro";
 import { DashboardRealtime } from "./DashboardRealtime";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
 
-  const [{ data: maquinas }, { data: opsAtivas }, { data: opsAbertas }, { data: apontamentosAbertos }, { data: paradasAbertas }] =
-    await Promise.all([
-      supabase.from("maquinas").select("*").eq("ativo", true).order("codigo"),
-      supabase
-        .from("ordens_producao")
-        .select("id, numero, status, maquina_id, quantidade_planejada, pecas(codigo, descricao)")
-        .in("status", ["em_producao", "parada"]),
-      supabase
-        .from("ordens_producao")
-        .select("id, numero, status, maquina_id, quantidade_planejada, pecas(codigo, descricao)")
-        .eq("status", "aberta")
-        .order("created_at", { ascending: true }),
-      supabase
-        .from("apontamentos")
-        .select("op_id, timestamp_start, operadores(nome)")
-        .is("timestamp_stop", null),
-      supabase.from("paradas").select("op_id, timestamp_inicio").is("timestamp_fim", null),
-    ]);
+  const [
+    { data: maquinas },
+    { data: opsAtivas },
+    { data: opsAbertas },
+    { data: setupsAbertos },
+    { data: apontamentosAbertos },
+    { data: paradasAbertas },
+  ] = await Promise.all([
+    supabase.from("maquinas").select("*").eq("ativo", true).order("codigo"),
+    supabase
+      .from("ordens_producao")
+      .select("id, numero, status, maquina_id, quantidade_planejada, pecas(codigo, descricao)")
+      .in("status", ["setup", "em_producao", "parada"]),
+    supabase
+      .from("ordens_producao")
+      .select("id, numero, status, maquina_id, quantidade_planejada, pecas(codigo, descricao)")
+      .eq("status", "aberta")
+      .order("created_at", { ascending: true }),
+    supabase
+      .from("setups")
+      .select("op_id, timestamp_inicio, operadores(nome)")
+      .is("timestamp_fim", null),
+    supabase
+      .from("apontamentos")
+      .select("op_id, timestamp_start, operadores(nome)")
+      .is("timestamp_stop", null),
+    supabase.from("paradas").select("op_id, timestamp_inicio").is("timestamp_fim", null),
+  ]);
 
   const opIds = [...(opsAtivas ?? []), ...(opsAbertas ?? [])].map((op) => op.id);
   const { data: progresso } =
@@ -31,6 +41,7 @@ export default async function DashboardPage() {
       : { data: [] };
 
   const produzidoPorOp = new Map((progresso ?? []).map((p) => [p.op_id, p.quantidade_produzida_total]));
+  const setupPorOp = new Map((setupsAbertos ?? []).map((s) => [s.op_id, s]));
   const apontamentoPorOp = new Map((apontamentosAbertos ?? []).map((a) => [a.op_id, a]));
   const paradaPorOp = new Map((paradasAbertas ?? []).map((p) => [p.op_id, p]));
   const opAtivaPorMaquina = new Map((opsAtivas ?? []).map((op) => [op.maquina_id, op]));
@@ -83,6 +94,32 @@ export default async function DashboardPage() {
 
           const op = opAtiva!;
           const peca = op.pecas as unknown as { codigo: string; descricao: string } | null;
+
+          if (op.status === "setup") {
+            const setup = setupPorOp.get(op.id);
+            const operadorSetup = setup?.operadores as unknown as { nome: string } | null;
+            return (
+              <div key={m.id} className="rounded-2xl border-2 border-sky-500 bg-sky-50 p-5 sm:p-6">
+                <p className="text-lg font-bold text-slate-900 sm:text-xl">
+                  {m.codigo} — {m.nome}
+                </p>
+                <p className="mt-1 text-sm font-bold uppercase tracking-wide text-sky-700">SETUP</p>
+                <p className="mt-3 text-base text-slate-800 sm:text-lg">
+                  OP {op.numero} — {peca?.codigo} {peca?.descricao}
+                </p>
+                {setup && (
+                  <div className="mt-4">
+                    <p className="text-sm text-slate-600">Operador: {operadorSetup?.nome ?? "-"}</p>
+                    <Cronometro
+                      desde={setup.timestamp_inicio}
+                      className="text-2xl font-bold text-sky-800 sm:text-3xl"
+                    />
+                  </div>
+                )}
+              </div>
+            );
+          }
+
           const emProducao = op.status === "em_producao";
           const apontamento = apontamentoPorOp.get(op.id);
           const parada = paradaPorOp.get(op.id);

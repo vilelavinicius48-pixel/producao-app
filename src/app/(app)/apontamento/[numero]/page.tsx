@@ -29,6 +29,13 @@ export default async function ApontamentoOPPage({
     .is("timestamp_stop", null)
     .maybeSingle();
 
+  const { data: setupAberto } = await supabase
+    .from("setups")
+    .select("id, timestamp_inicio, operadores(nome)")
+    .eq("op_id", op.id)
+    .is("timestamp_fim", null)
+    .maybeSingle();
+
   const { data: paradaAberta } = await supabase
     .from("paradas")
     .select("timestamp_inicio")
@@ -57,6 +64,7 @@ export default async function ApontamentoOPPage({
     .maybeSingle();
 
   const operadorInfo = apontamentoAberto?.operadores as unknown as { nome: string } | null;
+  const setupOperadorInfo = setupAberto?.operadores as unknown as { nome: string } | null;
 
   return (
     <div className="mx-auto max-w-md">
@@ -78,7 +86,17 @@ export default async function ApontamentoOPPage({
           opId={op.id}
           numero={numero}
           status={op.status}
+          setupConcluido={op.setup_concluido_em !== null}
           operadores={operadores ?? []}
+          setupAberto={
+            setupAberto
+              ? {
+                  id: setupAberto.id,
+                  timestamp_inicio: setupAberto.timestamp_inicio,
+                  operadorNome: setupOperadorInfo?.nome ?? "-",
+                }
+              : null
+          }
           apontamentoAberto={
             apontamentoAberto
               ? {

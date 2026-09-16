@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { STATUS_LABEL, STATUS_BADGE_CLASS } from "@/lib/op-status";
 import type { StatusOP } from "@/types/database";
 
-const STATUS_OPCOES: StatusOP[] = ["aberta", "em_producao", "parada", "concluida"];
+const STATUS_OPCOES: StatusOP[] = ["aberta", "setup", "em_producao", "parada", "concluida"];
 
 export default async function HistoricoPage({
   searchParams,

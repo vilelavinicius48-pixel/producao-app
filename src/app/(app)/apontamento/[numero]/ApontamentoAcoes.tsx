@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import {
+  iniciarSetupAction,
+  finalizarSetupAction,
   iniciarApontamentoAction,
   pararProducaoAction,
   pausarProducaoAction,
@@ -14,7 +16,9 @@ interface Props {
   opId: string;
   numero: string;
   status: StatusOP;
+  setupConcluido: boolean;
   operadores: Operador[];
+  setupAberto: { id: string; timestamp_inicio: string; operadorNome: string } | null;
   apontamentoAberto: { id: string; timestamp_start: string; operadorNome: string } | null;
   paradaAberta: { timestamp_inicio: string } | null;
   motivos: MotivoParada[];
@@ -50,12 +54,51 @@ export function ApontamentoAcoes({
   opId,
   numero,
   status,
+  setupConcluido,
   operadores,
+  setupAberto,
   apontamentoAberto,
   paradaAberta,
   motivos,
 }: Props) {
   const [view, setView] = useState<View>("buttons");
+
+  if (status === "aberta" && !setupConcluido) {
+    return (
+      <form action={iniciarSetupAction} className="space-y-4">
+        <input type="hidden" name="op_id" value={opId} />
+        <input type="hidden" name="numero" value={numero} />
+        <SeletorOperador operadores={operadores} />
+        <button
+          type="submit"
+          className="w-full rounded-2xl bg-sky-600 px-6 py-8 text-2xl font-bold text-white hover:bg-sky-700"
+        >
+          INICIAR SETUP
+        </button>
+      </form>
+    );
+  }
+
+  if (status === "setup" && setupAberto) {
+    return (
+      <div className="space-y-4">
+        <div className="rounded-xl border border-sky-200 bg-sky-50 p-4 text-center">
+          <p className="text-sm text-sky-800">Setup por {setupAberto.operadorNome}</p>
+          <Cronometro desde={setupAberto.timestamp_inicio} className="text-3xl font-bold text-sky-900" />
+        </div>
+        <form action={finalizarSetupAction}>
+          <input type="hidden" name="setup_id" value={setupAberto.id} />
+          <input type="hidden" name="numero" value={numero} />
+          <button
+            type="submit"
+            className="w-full rounded-2xl bg-sky-600 px-6 py-8 text-2xl font-bold text-white hover:bg-sky-700"
+          >
+            FINALIZAR SETUP
+          </button>
+        </form>
+      </div>
+    );
+  }
 
   if (status === "aberta") {
     return (

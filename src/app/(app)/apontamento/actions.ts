@@ -9,6 +9,38 @@ function friendlyError(message: string): never {
   throw new Error(message.replace(/^.*ERROR:\s*/i, ""));
 }
 
+export async function iniciarSetupAction(formData: FormData) {
+  await requireOperador();
+  const opId = String(formData.get("op_id"));
+  const numero = String(formData.get("numero"));
+  const operadorId = String(formData.get("operador_id") ?? "");
+
+  if (!operadorId) throw new Error("Selecione o operador");
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("iniciar_setup", {
+    p_op_id: opId,
+    p_operador_id: operadorId,
+  });
+  if (error) friendlyError(error.message);
+
+  revalidatePath(`/apontamento/${numero}`);
+  redirect(`/apontamento/${numero}`);
+}
+
+export async function finalizarSetupAction(formData: FormData) {
+  await requireOperador();
+  const setupId = String(formData.get("setup_id"));
+  const numero = String(formData.get("numero"));
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("finalizar_setup", { p_setup_id: setupId });
+  if (error) friendlyError(error.message);
+
+  revalidatePath(`/apontamento/${numero}`);
+  redirect(`/apontamento/${numero}`);
+}
+
 export async function iniciarApontamentoAction(formData: FormData) {
   await requireOperador();
   const opId = String(formData.get("op_id"));

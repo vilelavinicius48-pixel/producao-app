@@ -51,6 +51,17 @@ export default async function OPDetalhePage({
     .eq("op_id", op.id)
     .order("timestamp_inicio", { ascending: true });
 
+  const { data: setups } = await supabase
+    .from("setups")
+    .select("*, operadores(nome)")
+    .eq("op_id", op.id)
+    .order("timestamp_inicio", { ascending: true });
+
+  const tempoSetupTotalSegundos = (setups ?? []).reduce((s, st) => {
+    if (!st.timestamp_fim) return s;
+    return s + (new Date(st.timestamp_fim).getTime() - new Date(st.timestamp_inicio).getTime()) / 1000;
+  }, 0);
+
   const produzidaTotal = (apontamentos ?? []).reduce((s, a) => s + (a.quantidade_produzida ?? 0), 0);
   const refugadaTotal = (apontamentos ?? []).reduce((s, a) => s + (a.quantidade_refugada ?? 0), 0);
   const tempoRodadoTotalSegundos = (apontamentos ?? []).reduce((s, a) => {
@@ -113,6 +124,10 @@ export default async function OPDetalhePage({
           <p className="text-xs text-slate-600">Criada em</p>
           <p className="text-lg font-semibold text-slate-900">{formatDataHora(op.created_at)}</p>
         </div>
+        <div className="rounded-xl border border-sky-200 bg-sky-50 p-4">
+          <p className="text-xs text-sky-700">Tempo de setup</p>
+          <p className="text-lg font-semibold text-sky-900">{formatSegundos(tempoSetupTotalSegundos)}</p>
+        </div>
       </div>
 
       {materiais && materiais.length > 0 && (
@@ -125,6 +140,33 @@ export default async function OPDetalhePage({
               </li>
             ))}
           </ul>
+        </div>
+      )}
+
+      {setups && setups.length > 0 && (
+        <div className="mt-6 rounded-xl border border-slate-200 bg-white p-4">
+          <h2 className="mb-3 text-sm font-semibold text-slate-900">Setup</h2>
+          <table className="w-full text-left text-sm">
+            <thead className="text-slate-600">
+              <tr>
+                <th className="py-1 pr-3">Operador</th>
+                <th className="py-1 pr-3">Início</th>
+                <th className="py-1 pr-3">Fim</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {setups.map((s) => {
+                const operadorSetup = s.operadores as unknown as { nome: string } | null;
+                return (
+                  <tr key={s.id}>
+                    <td className="py-1 pr-3">{operadorSetup?.nome ?? "-"}</td>
+                    <td className="py-1 pr-3">{formatDataHora(s.timestamp_inicio)}</td>
+                    <td className="py-1 pr-3">{s.timestamp_fim ? formatDataHora(s.timestamp_fim) : "em andamento"}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       )}
 
