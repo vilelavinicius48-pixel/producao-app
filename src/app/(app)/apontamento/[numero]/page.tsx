@@ -22,46 +22,42 @@ export default async function ApontamentoOPPage({
   const peca = op.pecas as unknown as { codigo: string; descricao: string };
   const maquina = op.maquinas as unknown as { codigo: string; nome: string };
 
-  const { data: apontamentoAberto } = await supabase
-    .from("apontamentos")
-    .select("id, timestamp_start, operadores(nome)")
-    .eq("op_id", op.id)
-    .is("timestamp_stop", null)
-    .maybeSingle();
-
-  const { data: setupAberto } = await supabase
-    .from("setups")
-    .select("id, timestamp_inicio, operadores(nome)")
-    .eq("op_id", op.id)
-    .is("timestamp_fim", null)
-    .maybeSingle();
-
-  const { data: paradaAberta } = await supabase
-    .from("paradas")
-    .select("timestamp_inicio")
-    .eq("op_id", op.id)
-    .is("timestamp_fim", null)
-    .order("timestamp_inicio", { ascending: false })
-    .maybeSingle();
-
-  const { data: motivos } = await supabase
-    .from("motivos_parada")
-    .select("*")
-    .eq("ativo", true)
-    .order("descricao");
-
-  const { data: operadores } = await supabase
-    .from("operadores")
-    .select("*")
-    .eq("perfil", "operador")
-    .eq("ativo", true)
-    .order("nome");
-
-  const { data: progresso } = await supabase
-    .from("op_progresso")
-    .select("*")
-    .eq("op_id", op.id)
-    .maybeSingle();
+  const [
+    { data: apontamentoAberto },
+    { data: setupAberto },
+    { data: paradaAberta },
+    { data: motivos },
+    { data: operadores },
+    { data: progresso },
+  ] = await Promise.all([
+    supabase
+      .from("apontamentos")
+      .select("id, timestamp_start, operadores(nome)")
+      .eq("op_id", op.id)
+      .is("timestamp_stop", null)
+      .maybeSingle(),
+    supabase
+      .from("setups")
+      .select("id, timestamp_inicio, operadores(nome)")
+      .eq("op_id", op.id)
+      .is("timestamp_fim", null)
+      .maybeSingle(),
+    supabase
+      .from("paradas")
+      .select("timestamp_inicio")
+      .eq("op_id", op.id)
+      .is("timestamp_fim", null)
+      .order("timestamp_inicio", { ascending: false })
+      .maybeSingle(),
+    supabase.from("motivos_parada").select("*").eq("ativo", true).order("descricao"),
+    supabase
+      .from("operadores")
+      .select("*")
+      .eq("perfil", "operador")
+      .eq("ativo", true)
+      .order("nome"),
+    supabase.from("op_progresso").select("*").eq("op_id", op.id).maybeSingle(),
+  ]);
 
   const operadorInfo = apontamentoAberto?.operadores as unknown as { nome: string } | null;
   const setupOperadorInfo = setupAberto?.operadores as unknown as { nome: string } | null;
