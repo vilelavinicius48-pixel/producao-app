@@ -1,21 +1,26 @@
+import { cache } from "react";
 import "server-only";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { Operador } from "@/types/database";
 
 /** Usuário autenticado + seu perfil (operadores). Null se não logado. */
-export async function getOperadorAtual(): Promise<Operador | null> {
+export const getOperadorAtual = cache(async (): Promise<Operador | null> => {
   const supabase = await createClient();
   const {
-    data: { user },
-  } = await supabase.auth.getUser();
+    data: { session },
+  } = await supabase.auth.getSession();
 
-  if (!user) return null;
+  if (!session?.user) return null;
 
-  const { data } = await supabase.from("operadores").select("*").eq("id", user.id).single();
+  const { data } = await supabase
+    .from("operadores")
+    .select("*")
+    .eq("id", session.user.id)
+    .single();
 
   return data;
-}
+});
 
 /** Usa em Server Actions/páginas restritas a gestor. Redireciona caso contrário. */
 export async function requireGestor(): Promise<Operador> {
