@@ -37,7 +37,7 @@ export default async function HistoricoPage({
             name="numero"
             type="number"
             defaultValue={numero}
-            className="w-32 rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+            className="w-32 rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none"
           />
         </div>
         <div>
@@ -45,7 +45,7 @@ export default async function HistoricoPage({
           <select
             name="status"
             defaultValue={status ?? ""}
-            className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+            className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none"
           >
             <option value="">Todos</option>
             {STATUS_OPCOES.map((s) => (
@@ -57,7 +57,7 @@ export default async function HistoricoPage({
         </div>
         <button
           type="submit"
-          className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+          className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700"
         >
           Filtrar
         </button>

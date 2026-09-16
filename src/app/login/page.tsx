@@ -1,4 +1,5 @@
-﻿import { login } from "./actions";
+﻿import Image from "next/image";
+import { login } from "./actions";
 
 export default async function LoginPage({
   searchParams,
@@ -10,8 +11,9 @@ export default async function LoginPage({
   return (
     <div className="flex min-h-screen items-center justify-center bg-slate-100 px-4">
       <div className="w-full max-w-sm rounded-2xl bg-white p-8 shadow-md">
-        <h1 className="mb-1 text-2xl font-bold text-slate-900">Produção</h1>
-        <p className="mb-6 text-sm text-slate-600">Entre com sua matrícula e senha</p>
+        <Image src="/icons/icon-192.png" alt="RPVILELA Usinagens" width={64} height={64} className="mb-4" />
+        <h1 className="mb-1 text-2xl font-bold text-brand-800">Produção</h1>
+        <p className="mb-6 text-sm text-slate-600">RPVILELA Usinagens — entre com sua matrícula e senha</p>
 
         {error && (
           <div className="mb-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>
@@ -31,7 +33,7 @@ export default async function LoginPage({
               required
               autoFocus
               autoComplete="username"
-              className="w-full rounded-lg border border-slate-300 px-4 py-3 text-base focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
+              className="w-full rounded-lg border border-slate-300 px-4 py-3 text-base focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200"
             />
           </div>
 
@@ -45,13 +47,13 @@ export default async function LoginPage({
               type="password"
               required
               autoComplete="current-password"
-              className="w-full rounded-lg border border-slate-300 px-4 py-3 text-base focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
+              className="w-full rounded-lg border border-slate-300 px-4 py-3 text-base focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200"
             />
           </div>
 
           <button
             type="submit"
-            className="w-full rounded-lg bg-blue-600 px-4 py-3 text-base font-semibold text-white transition hover:bg-blue-700"
+            className="w-full rounded-lg bg-brand-600 px-4 py-3 text-base font-semibold text-white transition hover:bg-brand-700"
           >
             Entrar
           </button>

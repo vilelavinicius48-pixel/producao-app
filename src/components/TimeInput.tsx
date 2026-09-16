@@ -29,7 +29,7 @@ export function TimeInput({ name, label, defaultSegundos = 0, required }: Props)
             value={h}
             onChange={(e) => setH(Math.max(0, Number(e.target.value) || 0))}
             required={required}
-            className="w-16 rounded-lg border border-slate-300 px-2 py-2 text-center text-lg focus:border-blue-500 focus:outline-none"
+            className="w-16 rounded-lg border border-slate-300 px-2 py-2 text-center text-lg focus:border-brand-500 focus:outline-none"
           />
           <span className="mt-1 text-xs text-slate-600">horas</span>
         </div>
@@ -41,7 +41,7 @@ export function TimeInput({ name, label, defaultSegundos = 0, required }: Props)
             max={59}
             value={m}
             onChange={(e) => setM(Math.min(59, Math.max(0, Number(e.target.value) || 0)))}
-            className="w-16 rounded-lg border border-slate-300 px-2 py-2 text-center text-lg focus:border-blue-500 focus:outline-none"
+            className="w-16 rounded-lg border border-slate-300 px-2 py-2 text-center text-lg focus:border-brand-500 focus:outline-none"
           />
           <span className="mt-1 text-xs text-slate-600">min</span>
         </div>
@@ -53,7 +53,7 @@ export function TimeInput({ name, label, defaultSegundos = 0, required }: Props)
             max={59}
             value={s}
             onChange={(e) => setS(Math.min(59, Math.max(0, Number(e.target.value) || 0)))}
-            className="w-16 rounded-lg border border-slate-300 px-2 py-2 text-center text-lg focus:border-blue-500 focus:outline-none"
+            className="w-16 rounded-lg border border-slate-300 px-2 py-2 text-center text-lg focus:border-brand-500 focus:outline-none"
           />
           <span className="mt-1 text-xs text-slate-600">seg</span>
         </div>

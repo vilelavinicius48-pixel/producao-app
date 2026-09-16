@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -21,11 +21,11 @@ export function BuscaOPForm() {
         value={numero}
         onChange={(e) => setNumero(e.target.value)}
         autoFocus
-        className="rounded-xl border border-slate-300 px-6 py-5 text-2xl focus:border-blue-500 focus:outline-none"
+        className="rounded-xl border border-slate-300 px-6 py-5 text-2xl focus:border-brand-500 focus:outline-none"
       />
       <button
         type="submit"
-        className="rounded-xl bg-blue-600 px-6 py-5 text-xl font-bold text-white hover:bg-blue-700"
+        className="rounded-xl bg-brand-600 px-6 py-5 text-xl font-bold text-white hover:bg-brand-700"
       >
         Buscar OP
       </button>

@@ -16,7 +16,7 @@ export default async function OrdensPage() {
         <h1 className="text-2xl font-bold text-slate-900">Ordens de produção</h1>
         <Link
           href="/ordens/nova"
-          className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+          className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700"
         >
           Nova OP
         </Link>

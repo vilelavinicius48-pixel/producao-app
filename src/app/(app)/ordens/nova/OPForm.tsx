@@ -38,7 +38,7 @@ export function OPForm({ pecas, maquinas }: { pecas: PecaComRelacoes[]; maquinas
           required
           value={pecaId}
           onChange={(e) => setPecaId(e.target.value)}
-          className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+          className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none"
         >
           <option value="">Selecione...</option>
           {pecas.map((p) => (
@@ -59,7 +59,7 @@ export function OPForm({ pecas, maquinas }: { pecas: PecaComRelacoes[]; maquinas
           required
           value={quantidade}
           onChange={(e) => setQuantidade(e.target.value)}
-          className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+          className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none"
         />
       </div>
 
@@ -75,7 +75,7 @@ export function OPForm({ pecas, maquinas }: { pecas: PecaComRelacoes[]; maquinas
           <select
             name="maquina_id"
             required
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none"
           >
             <option value="">Selecione...</option>
             {maquinasCompativeis.map((m) => (
@@ -88,7 +88,7 @@ export function OPForm({ pecas, maquinas }: { pecas: PecaComRelacoes[]; maquinas
       </div>
 
       {peca && qtd > 0 && (
-        <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-900">
+        <div className="rounded-xl border border-brand-200 bg-brand-50 p-4 text-sm text-brand-900">
           <p className="font-semibold">Cálculo automático</p>
           <p className="mt-1">
             Tempo estimado: <strong>{formatSegundos(tempoEstimadoSegundos)}</strong> (h:min:s)
@@ -105,14 +105,14 @@ export function OPForm({ pecas, maquinas }: { pecas: PecaComRelacoes[]; maquinas
               </ul>
             </div>
           ) : (
-            <p className="mt-2 text-blue-700">Nenhum material cadastrado para esta peça.</p>
+            <p className="mt-2 text-brand-700">Nenhum material cadastrado para esta peça.</p>
           )}
         </div>
       )}
 
       <button
         type="submit"
-        className="rounded-lg bg-blue-600 px-5 py-3 text-sm font-semibold text-white hover:bg-blue-700"
+        className="rounded-lg bg-brand-600 px-5 py-3 text-sm font-semibold text-white hover:bg-brand-700"
       >
         Gerar OP
       </button>

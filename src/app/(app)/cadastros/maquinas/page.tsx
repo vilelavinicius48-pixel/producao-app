@@ -21,7 +21,7 @@ export default async function MaquinasPage() {
           <input
             name="codigo"
             required
-            className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+            className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none"
           />
         </div>
         <div className="flex-1">
@@ -29,12 +29,12 @@ export default async function MaquinasPage() {
           <input
             name="nome"
             required
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none"
           />
         </div>
         <button
           type="submit"
-          className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+          className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700"
         >
           Adicionar
         </button>
@@ -68,7 +68,7 @@ export default async function MaquinasPage() {
                   <form action={toggleMaquinaAtiva}>
                     <input type="hidden" name="id" value={m.id} />
                     <input type="hidden" name="ativo" value={(!m.ativo).toString()} />
-                    <button type="submit" className="text-sm font-medium text-blue-600 hover:underline">
+                    <button type="submit" className="text-sm font-medium text-brand-600 hover:underline">
                       {m.ativo ? "Desativar" : "Ativar"}
                     </button>
                   </form>

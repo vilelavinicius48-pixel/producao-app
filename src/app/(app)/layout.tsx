@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { redirect } from "next/navigation";
 import { getOperadorAtual } from "@/lib/auth";
 import { logout } from "@/app/login/actions";
@@ -55,8 +56,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <header className="sticky top-0 z-30 border-b border-slate-200 bg-white">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-3 py-2.5 sm:px-4 sm:py-3">
           <div className="flex min-w-0 items-center gap-3 sm:gap-6">
-            <Link href="/" className="shrink-0 text-lg font-bold text-slate-900">
-              Produção
+            <Link href="/" className="flex shrink-0 items-center gap-2">
+              <Image src="/icons/icon-192.png" alt="" width={28} height={28} priority />
+              <span className="text-lg font-bold text-brand-800">Produção</span>
             </Link>
             <nav className="hidden flex-wrap items-center gap-1 sm:flex">
               {outrosItems.map((item) => (

@@ -13,7 +13,7 @@ export default async function PecasPage() {
         <h1 className="text-2xl font-bold text-slate-900">Peças</h1>
         <Link
           href="/cadastros/pecas/nova"
-          className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+          className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700"
         >
           Nova peça
         </Link>
@@ -53,7 +53,7 @@ export default async function PecasPage() {
                   <form action={togglePecaAtiva}>
                     <input type="hidden" name="id" value={p.id} />
                     <input type="hidden" name="ativo" value={(!p.ativo).toString()} />
-                    <button type="submit" className="text-sm font-medium text-blue-600 hover:underline">
+                    <button type="submit" className="text-sm font-medium text-brand-600 hover:underline">
                       {p.ativo ? "Desativar" : "Ativar"}
                     </button>
                   </form>

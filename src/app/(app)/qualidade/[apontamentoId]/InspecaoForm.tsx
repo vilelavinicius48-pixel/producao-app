@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import { createInspecao } from "../actions";
@@ -67,14 +67,14 @@ export function InspecaoForm({ apontamentoId, quantidadeProduzida }: { apontamen
         <textarea
           name="observacao"
           rows={4}
-          className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+          className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none"
         />
       </div>
 
       <button
         type="submit"
         disabled={excedeu}
-        className="w-full rounded-xl bg-blue-600 px-4 py-4 text-lg font-bold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+        className="w-full rounded-xl bg-brand-600 px-4 py-4 text-lg font-bold text-white hover:bg-brand-700 disabled:cursor-not-allowed disabled:bg-slate-300"
       >
         Registrar inspeção
       </button>

@@ -9,8 +9,20 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--font-poppins);
   --font-mono: var(--font-geist-mono);
+
+  /* Identidade visual RPVILELA Usinagens (rpvilela.com.br) */
+  --color-brand-50: #eef4f9;
+  --color-brand-100: #d9e6f0;
+  --color-brand-200: #b3cce1;
+  --color-brand-300: #82abc9;
+  --color-brand-400: #4f80a3;
+  --color-brand-500: #2c5a7d;
+  --color-brand-600: #1a4266;
+  --color-brand-700: #123152;
+  --color-brand-800: #0f2a47;
+  --color-brand-900: #0a1d30;
 }
 
 /*
@@ -27,5 +39,4 @@ html {
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
 }

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import {
@@ -32,7 +32,7 @@ function SeletorOperador({ operadores }: { operadores: Operador[] }) {
         <select
           name="operador_id"
           required
-          className="w-full rounded-xl border border-slate-300 px-4 py-4 text-lg focus:border-blue-500 focus:outline-none"
+          className="w-full rounded-xl border border-slate-300 px-4 py-4 text-lg focus:border-brand-500 focus:outline-none"
         >
           <option value="">Selecione quem está operando...</option>
           {operadores.map((o) => (
@@ -77,7 +77,7 @@ export function ApontamentoAcoes({
     if (view === "finalizar" || view === "parada") {
       const action = view === "finalizar" ? pararProducaoAction : pausarProducaoAction;
       const titulo = view === "finalizar" ? "Finalizar produção" : "Registrar parada";
-      const corBotao = view === "finalizar" ? "bg-blue-600 hover:bg-blue-700" : "bg-red-600 hover:bg-red-700";
+      const corBotao = view === "finalizar" ? "bg-brand-600 hover:bg-brand-700" : "bg-red-600 hover:bg-red-700";
       return (
         <form action={action} className="space-y-4">
           <input type="hidden" name="apontamento_id" value={apontamentoAberto.id} />
@@ -92,7 +92,7 @@ export function ApontamentoAcoes({
               step="0.0001"
               required
               autoFocus
-              className="w-full rounded-xl border border-slate-300 px-4 py-4 text-xl focus:border-blue-500 focus:outline-none"
+              className="w-full rounded-xl border border-slate-300 px-4 py-4 text-xl focus:border-brand-500 focus:outline-none"
             />
           </div>
           <div>
@@ -104,7 +104,7 @@ export function ApontamentoAcoes({
               step="0.0001"
               required
               defaultValue={0}
-              className="w-full rounded-xl border border-slate-300 px-4 py-4 text-xl focus:border-blue-500 focus:outline-none"
+              className="w-full rounded-xl border border-slate-300 px-4 py-4 text-xl focus:border-brand-500 focus:outline-none"
             />
           </div>
           <div className="flex gap-3">
@@ -137,7 +137,7 @@ export function ApontamentoAcoes({
         </button>
         <button
           onClick={() => setView("finalizar")}
-          className="w-full rounded-2xl bg-blue-600 px-6 py-6 text-xl font-bold text-white hover:bg-blue-700"
+          className="w-full rounded-2xl bg-brand-600 px-6 py-6 text-xl font-bold text-white hover:bg-brand-700"
         >
           FINALIZAR (STOP)
         </button>
@@ -158,7 +158,7 @@ export function ApontamentoAcoes({
             <select
               name="motivo_id"
               required
-              className="w-full rounded-xl border border-slate-300 px-4 py-4 text-lg focus:border-blue-500 focus:outline-none"
+              className="w-full rounded-xl border border-slate-300 px-4 py-4 text-lg focus:border-brand-500 focus:outline-none"
             >
               <option value="">Selecione...</option>
               {motivos.map((m) => (

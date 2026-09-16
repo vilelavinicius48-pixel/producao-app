@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -100,7 +100,7 @@ export function MobileBottomNav({
             key={item.href}
             href={item.href}
             className={`flex flex-1 flex-col items-center gap-0.5 py-2.5 text-[11px] font-medium ${
-              ativo(item.href) ? "text-blue-600" : "text-slate-600"
+              ativo(item.href) ? "text-brand-600" : "text-slate-600"
             }`}
           >
             <Icon name={item.icon} />
@@ -113,7 +113,7 @@ export function MobileBottomNav({
             onClick={() => setAberto((v) => !v)}
             aria-expanded={aberto}
             className={`flex flex-1 flex-col items-center gap-0.5 py-2.5 text-[11px] font-medium ${
-              aberto ? "text-blue-600" : "text-slate-600"
+              aberto ? "text-brand-600" : "text-slate-600"
             }`}
           >
             <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth={2}>

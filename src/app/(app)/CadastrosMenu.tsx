@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -34,7 +34,7 @@ export function CadastrosMenu({ items }: { items: NavItem[] }) {
         onClick={() => setAberto((v) => !v)}
         aria-expanded={aberto}
         className={`flex items-center gap-1 rounded-md px-3 py-2 text-sm font-medium hover:bg-slate-100 ${
-          ativo ? "text-blue-600" : "text-slate-700 hover:text-slate-900"
+          ativo ? "text-brand-600" : "text-slate-700 hover:text-slate-900"
         }`}
       >
         Cadastros

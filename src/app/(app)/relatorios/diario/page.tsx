@@ -1,4 +1,4 @@
-import { requireGestor } from "@/lib/auth";
+﻿import { requireGestor } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { formatSegundos } from "@/lib/tempo";
 import { EficienciaChart } from "@/components/EficienciaChart";
@@ -156,7 +156,7 @@ export default async function RelatorioDiarioPage({
             type="date"
             name="data"
             defaultValue={dataSelecionada}
-            className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+            className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none"
           />
         </div>
         <div>
@@ -164,7 +164,7 @@ export default async function RelatorioDiarioPage({
           <select
             name="maquina_id"
             defaultValue={maquinaFiltro ?? ""}
-            className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+            className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none"
           >
             <option value="">Todas</option>
             {maquinas?.map((m) => (
@@ -179,7 +179,7 @@ export default async function RelatorioDiarioPage({
           <select
             name="operador_id"
             defaultValue={operadorFiltro ?? ""}
-            className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+            className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none"
           >
             <option value="">Todos</option>
             {operadores?.map((o) => (
@@ -191,7 +191,7 @@ export default async function RelatorioDiarioPage({
         </div>
         <button
           type="submit"
-          className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+          className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700"
         >
           Ver
         </button>

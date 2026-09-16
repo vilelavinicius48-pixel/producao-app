@@ -30,7 +30,7 @@ export default async function OperadoresPage() {
           <input
             name="matricula"
             required
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none"
           />
         </div>
         <div>
@@ -38,7 +38,7 @@ export default async function OperadoresPage() {
           <input
             name="nome"
             required
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none"
           />
         </div>
         <div>
@@ -47,7 +47,7 @@ export default async function OperadoresPage() {
             name="perfil"
             required
             defaultValue="operador"
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none"
           >
             <option value="operador">Operador</option>
             <option value="qualidade">Qualidade</option>
@@ -61,13 +61,13 @@ export default async function OperadoresPage() {
             type="password"
             required
             minLength={6}
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none"
           />
         </div>
         <div className="lg:col-span-4">
           <button
             type="submit"
-            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+            className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700"
           >
             Criar usuário
           </button>
@@ -104,7 +104,7 @@ export default async function OperadoresPage() {
                   <form action={toggleOperadorAtivo}>
                     <input type="hidden" name="id" value={o.id} />
                     <input type="hidden" name="ativo" value={(!o.ativo).toString()} />
-                    <button type="submit" className="text-sm font-medium text-blue-600 hover:underline">
+                    <button type="submit" className="text-sm font-medium text-brand-600 hover:underline">
                       {o.ativo ? "Desativar" : "Ativar"}
                     </button>
                   </form>

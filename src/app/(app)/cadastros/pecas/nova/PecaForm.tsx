@@ -48,7 +48,7 @@ export function PecaForm({ maquinas }: { maquinas: Maquina[] }) {
           <input
             name="codigo"
             required
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none"
           />
         </div>
         <div>
@@ -59,7 +59,7 @@ export function PecaForm({ maquinas }: { maquinas: Maquina[] }) {
           <input
             name="descricao"
             required
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none"
           />
         </div>
       </div>
@@ -88,7 +88,7 @@ export function PecaForm({ maquinas }: { maquinas: Maquina[] }) {
           <button
             type="button"
             onClick={addRow}
-            className="text-sm font-medium text-blue-600 hover:underline"
+            className="text-sm font-medium text-brand-600 hover:underline"
           >
             + adicionar material
           </button>
@@ -102,7 +102,7 @@ export function PecaForm({ maquinas }: { maquinas: Maquina[] }) {
                 <input
                   value={row.material}
                   onChange={(e) => updateRow(i, { material: e.target.value })}
-                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none"
                 />
               </div>
               <div className="w-32">
@@ -113,7 +113,7 @@ export function PecaForm({ maquinas }: { maquinas: Maquina[] }) {
                   min="0"
                   value={row.quantidade_por_unidade}
                   onChange={(e) => updateRow(i, { quantidade_por_unidade: e.target.value })}
-                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none"
                 />
               </div>
               <div className="w-24">
@@ -121,7 +121,7 @@ export function PecaForm({ maquinas }: { maquinas: Maquina[] }) {
                 <input
                   value={row.unidade_medida}
                   onChange={(e) => updateRow(i, { unidade_medida: e.target.value })}
-                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none"
                 />
               </div>
               <button
@@ -138,7 +138,7 @@ export function PecaForm({ maquinas }: { maquinas: Maquina[] }) {
 
       <button
         type="submit"
-        className="rounded-lg bg-blue-600 px-5 py-3 text-sm font-semibold text-white hover:bg-blue-700"
+        className="rounded-lg bg-brand-600 px-5 py-3 text-sm font-semibold text-white hover:bg-brand-700"
       >
         Salvar peça
       </button>

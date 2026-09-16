@@ -53,7 +53,7 @@ export default async function QualidadePage() {
                   <td className="px-4 py-3">{a.quantidade_produzida}</td>
                   <td className="px-4 py-3">{new Date(a.timestamp_stop!).toLocaleString("pt-BR")}</td>
                   <td className="px-4 py-3 text-right">
-                    <Link href={`/qualidade/${a.id}`} className="text-sm font-medium text-blue-600 hover:underline">
+                    <Link href={`/qualidade/${a.id}`} className="text-sm font-medium text-brand-600 hover:underline">
                       Inspecionar
                     </Link>
                   </td>
