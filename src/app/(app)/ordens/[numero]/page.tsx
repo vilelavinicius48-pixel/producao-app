@@ -36,7 +36,7 @@ export default async function OPDetalhePage({
 
   const [operador, { data: maquinasAtivas }, { data: pedido }] = await Promise.all([
     getOperadorAtual(),
-    supabase.from("maquinas").select("id, codigo").eq("ativo", true).order("codigo"),
+    supabase.from("maquinas").select("id, codigo, nome").eq("ativo", true).order("codigo"),
     op.pedido_item_id
       ? supabase
           .from("pedido_itens")
@@ -99,7 +99,7 @@ export default async function OPDetalhePage({
         </span>
       </div>
       <p className="mt-1 text-sm text-slate-600">
-        {peca.codigo} — {peca.descricao} · Máquina {maquina.codigo} — {maquina.nome}
+        {peca.codigo} — {peca.descricao} · Máquina {maquina.nome}
       </p>
 
       {operador?.perfil === "gestor" && (

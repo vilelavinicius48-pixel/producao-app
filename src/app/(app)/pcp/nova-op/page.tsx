@@ -120,7 +120,7 @@ export default async function NovaOPDoPedidoPage({
                 >
                   <span className="flex items-center gap-2">
                     <input type="radio" name="maquina_id" value={m.id} required defaultChecked={opcoes.length === 1 && i === 0} />
-                    <span className="font-medium">{m.codigo}</span>
+                    <span className="font-medium">{m.nome}</span>
                   </span>
                   <span className="text-xs text-slate-500">
                     {c ? `${c.ops} OP${c.ops > 1 ? "s" : ""} · ${formatHoras(c.segundos)}` : "livre"}

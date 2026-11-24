@@ -305,7 +305,14 @@ export async function criarOPDoPedido(formData: FormData) {
 
 const PREPARO_VALIDOS: StatusPreparo[] = ["pendente", "aguardando", "ok", "na"];
 
-export async function salvarPreparo(formData: FormData) {
+export type EstadoPreparo = { erro?: string };
+
+/**
+ * Salva o preparo (e opcionalmente libera/volta a OP). Erros esperados (validação,
+ * concorrência) são devolvidos como texto em vez de lançados, para o formulário
+ * mostrar um aviso simples em vez de travar com uma tela de erro técnica.
+ */
+export async function salvarPreparo(_prevState: EstadoPreparo, formData: FormData): Promise<EstadoPreparo> {
   await requireGestor();
   const opId = String(formData.get("op_id") ?? "");
   const acao = String(formData.get("acao") ?? "salvar");
@@ -316,7 +323,7 @@ export async function salvarPreparo(formData: FormData) {
     .select("id, numero, status, setup_concluido_em")
     .eq("id", opId)
     .single();
-  if (error || !op) throw new Error("OP não encontrada");
+  if (error || !op) return { erro: "OP não encontrada" };
 
   const preparo = {} as Record<(typeof PREPARO_ITENS)[number]["campo"], StatusPreparo>;
   for (const item of PREPARO_ITENS) {
@@ -329,25 +336,26 @@ export async function salvarPreparo(formData: FormData) {
   const update: Partial<OrdemProducao> = { ...preparo, previsao_material: previsao, obs_pcp: obs };
 
   if (acao === "liberar") {
-    if (op.status !== "planejada") throw new Error("Só OP planejada pode ser liberada");
+    if (op.status !== "planejada") return { erro: "Só OP planejada pode ser liberada" };
     if (!preparoCompleto(preparo)) {
-      throw new Error("Para liberar, todos os itens precisam estar OK ou 'Não se aplica'");
+      return { erro: "Para liberar, todos os itens precisam estar OK ou 'Não se aplica'" };
     }
     update.status = "aberta";
     update.liberada_em = new Date().toISOString();
   } else if (acao === "voltar") {
     if (op.status !== "aberta" || op.setup_concluido_em) {
-      throw new Error("Só dá para voltar para planejada uma OP liberada que ainda não começou");
+      return { erro: "Só dá para voltar para planejada uma OP liberada que ainda não começou" };
     }
     update.status = "planejada";
     update.liberada_em = null;
   }
 
   const { error: errUpd } = await supabase.from("ordens_producao").update(update).eq("id", opId);
-  if (errUpd) throw new Error(errUpd.message);
+  if (errUpd) return { erro: errUpd.message };
 
   revalidarPCP();
   revalidatePath(`/ordens/${op.numero}`);
+  return {};
 }
 
 /** Marca um item de preparo como OK direto do quadro/pendências. */

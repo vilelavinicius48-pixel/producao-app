@@ -68,7 +68,7 @@ export default async function ProgramacaoPage() {
           return (
             <section key={m.id} className="flex flex-col rounded-xl border border-slate-200 bg-slate-50">
               <header className="flex items-center justify-between border-b border-slate-200 px-3 py-2">
-                <h2 className="text-base font-bold text-slate-900">{m.codigo}</h2>
+                <h2 className="text-base font-bold text-slate-900">{m.nome}</h2>
                 <span className="text-xs text-slate-600">
                   {formatHoras(carga)}
                   {semTempo > 0 && <span className="text-amber-700"> + {semTempo} sem tempo</span>}

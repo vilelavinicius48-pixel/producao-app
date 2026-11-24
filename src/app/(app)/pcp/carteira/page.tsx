@@ -29,7 +29,7 @@ type ItemLinha = {
   pecas: { tempo_padrao_segundos: number | null } | null;
 };
 
-type OPLinha = OPEntrada & { maquinas: { codigo: string } | null };
+type OPLinha = OPEntrada & { maquinas: { nome: string } | null };
 
 const FILTROS: { valor: string; label: string }[] = [
   { valor: "", label: "Todos" },
@@ -64,7 +64,7 @@ export default async function CarteiraPage({
     buscarTodos<OPLinha>((de, ate) =>
       supabase
         .from("ordens_producao")
-        .select("numero, status, pedido_item_id, quantidade_planejada, maquinas(codigo)")
+        .select("numero, status, pedido_item_id, quantidade_planejada, maquinas(nome)")
         .not("pedido_item_id", "is", null)
         .order("numero")
         .range(de, ate)
@@ -75,7 +75,7 @@ export default async function CarteiraPage({
 
   const saldo = new Map((estoque ?? []).map((e) => [e.peca_id, Number(e.saldo)]));
   const calculo = calcularCarteira(itens, ops, saldo);
-  const maquinaPorOP = new Map(ops.map((o) => [o.numero, o.maquinas?.codigo ?? ""]));
+  const maquinaPorOP = new Map(ops.map((o) => [o.numero, o.maquinas?.nome ?? ""]));
 
   const clientes = [...new Set(itens.map((i) => i.cliente))].sort();
   const busca = q.trim().toLowerCase();

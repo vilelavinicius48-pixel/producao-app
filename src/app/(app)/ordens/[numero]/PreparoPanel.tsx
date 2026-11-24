@@ -1,10 +1,14 @@
+"use client";
+
+import { useActionState, useState } from "react";
 import Link from "next/link";
-import { excluirOPPlanejada, salvarPreparo, trocarMaquina } from "@/app/(app)/pcp/actions";
+import { excluirOPPlanejada, salvarPreparo, trocarMaquina, type EstadoPreparo } from "@/app/(app)/pcp/actions";
 import { PREPARO_ITENS, PREPARO_LABEL, preparoCompleto, type CampoPreparo } from "@/lib/op-status";
 import { formatData, formatQtd } from "@/lib/pcp/carteira";
 import type { OrdemProducao, StatusPreparo } from "@/types/database";
 
 const OPCOES: StatusPreparo[] = ["pendente", "aguardando", "ok", "na"];
+const ESTADO_INICIAL: EstadoPreparo = {};
 
 export function PreparoPanel({
   op,
@@ -12,11 +16,17 @@ export function PreparoPanel({
   pedido,
 }: {
   op: OrdemProducao;
-  maquinas: { id: string; codigo: string }[];
+  maquinas: { id: string; codigo: string; nome: string }[];
   pedido: { cliente: string; numero_pedido: string; data_entrega: string; quantidade: number } | null;
 }) {
   const editavel = op.status === "planejada" || (op.status === "aberta" && !op.setup_concluido_em);
-  const completo = preparoCompleto(op as Record<CampoPreparo, StatusPreparo>);
+  const [preparo, setPreparo] = useState<Record<CampoPreparo, StatusPreparo>>(() => {
+    const inicial = {} as Record<CampoPreparo, StatusPreparo>;
+    for (const item of PREPARO_ITENS) inicial[item.campo] = op[item.campo];
+    return inicial;
+  });
+  const completo = preparoCompleto(preparo);
+  const [estado, formAction, pendente] = useActionState(salvarPreparo, ESTADO_INICIAL);
 
   return (
     <div className="mt-6 rounded-xl border border-amber-200 bg-white p-4">
@@ -31,7 +41,7 @@ export function PreparoPanel({
       </div>
 
       {editavel ? (
-        <form action={salvarPreparo} className="mt-3 space-y-3">
+        <form action={formAction} className="mt-3 space-y-3">
           <input type="hidden" name="op_id" value={op.id} />
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             {PREPARO_ITENS.map((i) => (
@@ -39,7 +49,8 @@ export function PreparoPanel({
                 <span className="mb-1 block font-medium text-slate-700">{i.label}</span>
                 <select
                   name={i.campo}
-                  defaultValue={op[i.campo]}
+                  value={preparo[i.campo]}
+                  onChange={(e) => setPreparo((p) => ({ ...p, [i.campo]: e.target.value as StatusPreparo }))}
                   className="w-full rounded-lg border border-slate-300 px-2 py-2 text-sm"
                 >
                   {OPCOES.map((o) => (
@@ -76,7 +87,8 @@ export function PreparoPanel({
               type="submit"
               name="acao"
               value="salvar"
-              className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+              disabled={pendente}
+              className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
             >
               Salvar
             </button>
@@ -85,8 +97,9 @@ export function PreparoPanel({
                 type="submit"
                 name="acao"
                 value="liberar"
-                className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
-                title="Todos os itens precisam estar OK ou Não se aplica"
+                disabled={pendente || !completo}
+                title={completo ? "Liberar OP para produção" : "Deixe todos os itens como OK ou Não se aplica para liberar"}
+                className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-300"
               >
                 Salvar e liberar para produção
               </button>
@@ -96,16 +109,18 @@ export function PreparoPanel({
                 type="submit"
                 name="acao"
                 value="voltar"
-                className="rounded-lg border border-amber-300 px-4 py-2 text-sm font-semibold text-amber-800 hover:bg-amber-50"
+                disabled={pendente}
+                className="rounded-lg border border-amber-300 px-4 py-2 text-sm font-semibold text-amber-800 hover:bg-amber-50 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 Voltar para planejada
               </button>
             )}
           </div>
           {op.status === "planejada" && !completo && (
-            <p className="text-xs text-slate-500">
-              Para liberar, deixe todos os itens como OK ou Não se aplica.
-            </p>
+            <p className="text-xs text-slate-500">Para liberar, deixe todos os itens como OK ou Não se aplica.</p>
+          )}
+          {estado.erro && (
+            <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{estado.erro}</p>
           )}
         </form>
       ) : (
@@ -123,7 +138,7 @@ export function PreparoPanel({
               <select name="maquina_id" defaultValue={op.maquina_id} className="rounded-lg border border-slate-300 px-2 py-2 text-sm">
                 {maquinas.map((m) => (
                   <option key={m.id} value={m.id}>
-                    {m.codigo}
+                    {m.nome}
                   </option>
                 ))}
               </select>

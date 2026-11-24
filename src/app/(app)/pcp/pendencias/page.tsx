@@ -7,7 +7,7 @@ import { buscarTodos } from "@/lib/pcp/paginar";
 import type { OPQuadro } from "../OPCard";
 
 type OPPend = OPQuadro & {
-  maquinas: { codigo: string } | null;
+  maquinas: { nome: string } | null;
   peca_id: string;
   pecas: (OPQuadro["pecas"] & { peca_materiais: { material: string; quantidade_por_unidade: number; unidade_medida: string }[] }) | null;
 };
@@ -19,7 +19,7 @@ export default async function PendenciasPage() {
   const { data } = await supabase
     .from("ordens_producao")
     .select(
-      "id, numero, status, maquina_id, sequencia, quantidade_planejada, created_at, peca_id, material_status, ferramenta_status, dispositivo_status, programa_status, previsao_material, maquinas(codigo), pecas(codigo, descricao, tempo_padrao_segundos, peca_materiais(material, quantidade_por_unidade, unidade_medida)), pedido_itens(cliente, data_entrega, numero_pedido)"
+      "id, numero, status, maquina_id, sequencia, quantidade_planejada, created_at, peca_id, material_status, ferramenta_status, dispositivo_status, programa_status, previsao_material, maquinas(nome), pecas(codigo, descricao, tempo_padrao_segundos, peca_materiais(material, quantidade_por_unidade, unidade_medida)), pedido_itens(cliente, data_entrega, numero_pedido)"
     )
     .eq("status", "planejada")
     .order("created_at")
@@ -82,7 +82,7 @@ export default async function PendenciasPage() {
                     <li key={o.id} className="flex items-start justify-between gap-3 px-4 py-2.5 text-sm">
                       <div className="min-w-0">
                         <Link href={`/ordens/${o.numero}`} className="font-medium text-slate-900 hover:underline">
-                          OP {o.numero} · {o.maquinas?.codigo}
+                          OP {o.numero} · {o.maquinas?.nome}
                         </Link>{" "}
                         <span className="text-slate-700">
                           {o.pecas?.codigo} — {formatQtd(Number(o.quantidade_planejada))} pç
