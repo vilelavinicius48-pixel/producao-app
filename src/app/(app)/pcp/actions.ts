@@ -4,10 +4,11 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireGestor } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { criarOPPlanejada } from "@/lib/pcp/criar-op";
+import { calcularMaterialOP, criarOPPlanejada } from "@/lib/pcp/criar-op";
 import { chaveItem, lerCarteiraTabela, type LinhaCarteira } from "@/lib/pcp/csv";
 import { buscarTodos, emBlocos } from "@/lib/pcp/paginar";
 import { PREPARO_ITENS, preparoCompleto } from "@/lib/op-status";
+import { recalcularMaterial } from "@/lib/pcp/recalcular-material";
 import type { OrdemProducao, StatusPreparo } from "@/types/database";
 
 function revalidarPCP() {
@@ -320,20 +321,33 @@ export async function salvarPreparo(_prevState: EstadoPreparo, formData: FormDat
 
   const { data: op, error } = await supabase
     .from("ordens_producao")
-    .select("id, numero, status, setup_concluido_em")
+    .select("id, numero, status, setup_concluido_em, material_status, previsao_material")
     .eq("id", opId)
     .single();
   if (error || !op) return { erro: "OP não encontrada" };
 
+  // Ferramenta/dispositivo/programa continuam 100% manuais, como sempre.
   const preparo = {} as Record<(typeof PREPARO_ITENS)[number]["campo"], StatusPreparo>;
   for (const item of PREPARO_ITENS) {
+    if (item.campo === "material_status") continue;
     const v = String(formData.get(item.campo) ?? "pendente") as StatusPreparo;
     preparo[item.campo] = PREPARO_VALIDOS.includes(v) ? v : "pendente";
   }
-  const previsao = String(formData.get("previsao_material") ?? "").trim() || null;
   const obs = String(formData.get("obs_pcp") ?? "").trim() || null;
 
-  const update: Partial<OrdemProducao> = { ...preparo, previsao_material: previsao, obs_pcp: obs };
+  const update: Partial<OrdemProducao> = { ...preparo, obs_pcp: obs };
+
+  // Material: só mexe se o gestor abriu a edição manual nesta mesma tela.
+  // Enquanto estiver automático, o status e a previsão ficam por conta do recálculo
+  // (estoque/pedidos de compra) e não são tocados aqui.
+  const materialManual = formData.get("material_manual") === "true";
+  if (materialManual) {
+    const v = String(formData.get("material_status") ?? "pendente") as StatusPreparo;
+    update.material_status = PREPARO_VALIDOS.includes(v) ? v : "pendente";
+    update.material_status_manual = true;
+    update.previsao_material = String(formData.get("previsao_material") ?? "").trim() || null;
+  }
+  preparo.material_status = materialManual ? (update.material_status as StatusPreparo) : op.material_status;
 
   if (acao === "liberar") {
     if (op.status !== "planejada") return { erro: "Só OP planejada pode ser liberada" };
@@ -356,6 +370,20 @@ export async function salvarPreparo(_prevState: EstadoPreparo, formData: FormDat
   revalidarPCP();
   revalidatePath(`/ordens/${op.numero}`);
   return {};
+}
+
+/** Devolve o status de material desta OP para o controle automático (estoque/pedidos de compra). */
+export async function recalcularMaterialAutomaticoOP(formData: FormData) {
+  await requireGestor();
+  const opId = String(formData.get("op_id") ?? "");
+  if (!opId) throw new Error("OP não encontrada");
+
+  const supabase = await createClient();
+  const { error } = await supabase.from("ordens_producao").update({ material_status_manual: false }).eq("id", opId);
+  if (error) throw new Error(error.message);
+
+  await recalcularMaterial(supabase);
+  revalidarPCP();
 }
 
 /** Marca um item de preparo como OK direto do quadro/pendências. */
@@ -424,7 +452,7 @@ export async function moverNaFila(formData: FormData) {
   revalidarPCP();
 }
 
-export async function trocarMaquina(formData: FormData) {
+export async function trocarMaquina(_prevState: EstadoPreparo, formData: FormData): Promise<EstadoPreparo> {
   await requireGestor();
   const opId = String(formData.get("op_id") ?? "");
   const maquinaId = String(formData.get("maquina_id") ?? "");
@@ -432,33 +460,41 @@ export async function trocarMaquina(formData: FormData) {
 
   const { data: op } = await supabase
     .from("ordens_producao")
-    .select("id, numero, status, peca_id, maquina_id, setup_concluido_em")
+    .select("id, numero, status, peca_id, maquina_id, quantidade_planejada, setup_concluido_em")
     .eq("id", opId)
     .single();
-  if (!op) throw new Error("OP não encontrada");
+  if (!op) return { erro: "OP não encontrada" };
   if (!["planejada", "aberta"].includes(op.status) || op.setup_concluido_em) {
-    throw new Error("Só dá para trocar a máquina de OP que ainda não começou");
+    return { erro: "Só dá para trocar a máquina de OP que ainda não começou" };
   }
-  if (op.maquina_id === maquinaId) return;
+  if (op.maquina_id === maquinaId) return {};
 
   const { data: compat } = await supabase.from("pecas_maquinas").select("maquina_id").eq("peca_id", op.peca_id);
   if ((compat ?? []).length > 0 && !(compat ?? []).some((c) => c.maquina_id === maquinaId)) {
-    throw new Error("Essa máquina não está cadastrada como compatível com a peça (ajuste no cadastro da peça)");
+    return { erro: "Essa máquina não está cadastrada como compatível com a peça (ajuste no cadastro da peça)" };
   }
   if ((compat ?? []).length === 0) {
     await supabase.from("pecas_maquinas").insert({ peca_id: op.peca_id, maquina_id: maquinaId });
   }
 
+  const material = await calcularMaterialOP(supabase, {
+    pecaId: op.peca_id,
+    maquinaId,
+    quantidade: Number(op.quantidade_planejada),
+  });
+
   const filaNova = await filaDaMaquina(supabase, maquinaId);
   const { error } = await supabase
     .from("ordens_producao")
-    .update({ maquina_id: maquinaId, sequencia: filaNova.length + 1 })
+    .update({ maquina_id: maquinaId, sequencia: filaNova.length + 1, ...material })
     .eq("id", opId);
-  if (error) throw new Error(error.message);
+  if (error) return { erro: error.message };
 
   await gravarOrdem(supabase, await filaDaMaquina(supabase, op.maquina_id));
+  if (material.material_id) await recalcularMaterial(supabase);
   revalidarPCP();
   revalidatePath(`/ordens/${op.numero}`);
+  return {};
 }
 
 export async function excluirOPPlanejada(formData: FormData) {
@@ -513,5 +549,144 @@ export async function movimentarEstoque(formData: FormData) {
     criado_por: gestor.id,
   });
   if (error) throw new Error(error.message);
+  revalidarPCP();
+}
+
+// ---------------------------------------------------------------------------
+// Estoque e compras de material
+// ---------------------------------------------------------------------------
+
+export async function movimentarEstoqueMaterial(formData: FormData) {
+  const gestor = await requireGestor();
+  const materialId = String(formData.get("material_id") ?? "");
+  const tipo = String(formData.get("tipo") ?? "");
+  const quantidade = Number(String(formData.get("quantidade") ?? "").replace(",", "."));
+  const observacao = String(formData.get("observacao") ?? "").trim() || null;
+
+  if (!materialId || !Number.isFinite(quantidade) || quantidade < 0) throw new Error("Quantidade inválida");
+
+  const supabase = await createClient();
+
+  let movimento: { tipo: "entrada" | "saida" | "ajuste"; quantidade: number };
+  if (tipo === "contagem") {
+    const { data } = await supabase.from("estoque_materiais").select("saldo").eq("material_id", materialId).maybeSingle();
+    const delta = quantidade - Number(data?.saldo ?? 0);
+    if (delta === 0) return;
+    movimento = { tipo: "ajuste", quantidade: delta };
+  } else if (tipo === "entrada") {
+    movimento = { tipo: "entrada", quantidade };
+  } else if (tipo === "saida") {
+    movimento = { tipo: "saida", quantidade: -quantidade };
+  } else {
+    throw new Error("Tipo de movimento inválido");
+  }
+
+  const { error } = await supabase.from("estoque_material_movimentos").insert({
+    material_id: materialId,
+    ...movimento,
+    observacao: observacao ?? (tipo === "contagem" ? "Contagem de estoque" : null),
+    criado_por: gestor.id,
+  });
+  if (error) throw new Error(error.message);
+
+  await recalcularMaterial(supabase);
+  revalidarPCP();
+}
+
+export async function criarPedidoCompraMaterial(formData: FormData) {
+  const gestor = await requireGestor();
+  const materialId = String(formData.get("material_id") ?? "");
+  const quantidade = Number(String(formData.get("quantidade") ?? "").replace(",", "."));
+  const fornecedor = String(formData.get("fornecedor") ?? "").trim();
+  const dataPedido = String(formData.get("data_pedido") ?? "").trim() || null;
+  const previsaoChegada = String(formData.get("previsao_chegada") ?? "").trim() || null;
+
+  if (!materialId) throw new Error("Selecione o material");
+  if (!Number.isFinite(quantidade) || quantidade <= 0) throw new Error("Quantidade inválida");
+  if (!fornecedor) throw new Error("Informe o fornecedor");
+
+  const supabase = await createClient();
+  const { error } = await supabase.from("pedidos_compra_material").insert({
+    material_id: materialId,
+    quantidade,
+    fornecedor,
+    data_pedido: dataPedido ?? undefined,
+    previsao_chegada: previsaoChegada,
+    criado_por: gestor.id,
+  });
+  if (error) throw new Error(error.message);
+
+  await recalcularMaterial(supabase);
+  revalidarPCP();
+}
+
+/** Marca o pedido como recebido e lança a entrada no estoque (quantidade recebida pode ser menor, se veio parcial). */
+export async function marcarPedidoRecebido(formData: FormData) {
+  const gestor = await requireGestor();
+  const pedidoId = String(formData.get("pedido_id") ?? "");
+  const supabase = await createClient();
+
+  const { data: pedido, error } = await supabase
+    .from("pedidos_compra_material")
+    .select("id, material_id, quantidade, status")
+    .eq("id", pedidoId)
+    .single();
+  if (error || !pedido) throw new Error("Pedido não encontrado");
+  if (pedido.status !== "pedido") throw new Error("Esse pedido já foi fechado");
+
+  const recebidaStr = String(formData.get("quantidade_recebida") ?? "").replace(",", ".").trim();
+  const quantidadeRecebida = recebidaStr ? Number(recebidaStr) : Number(pedido.quantidade);
+  if (!Number.isFinite(quantidadeRecebida) || quantidadeRecebida <= 0) throw new Error("Quantidade recebida inválida");
+
+  const { error: errUpd } = await supabase
+    .from("pedidos_compra_material")
+    .update({ status: "recebido", quantidade_recebida: quantidadeRecebida, recebido_em: new Date().toISOString() })
+    .eq("id", pedidoId);
+  if (errUpd) throw new Error(errUpd.message);
+
+  const { error: errMov } = await supabase.from("estoque_material_movimentos").insert({
+    material_id: pedido.material_id,
+    tipo: "entrada",
+    quantidade: quantidadeRecebida,
+    observacao: "Recebimento de pedido de compra",
+    criado_por: gestor.id,
+  });
+  if (errMov) throw new Error(errMov.message);
+
+  await recalcularMaterial(supabase);
+  revalidarPCP();
+}
+
+/** Atualiza a previsão de chegada de um pedido (o fornecedor costuma informar depois do pedido feito). */
+export async function atualizarPrevisaoPedido(formData: FormData) {
+  await requireGestor();
+  const pedidoId = String(formData.get("pedido_id") ?? "");
+  const previsaoChegada = String(formData.get("previsao_chegada") ?? "").trim() || null;
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("pedidos_compra_material")
+    .update({ previsao_chegada: previsaoChegada })
+    .eq("id", pedidoId)
+    .eq("status", "pedido");
+  if (error) throw new Error(error.message);
+
+  await recalcularMaterial(supabase);
+  revalidarPCP();
+}
+
+export async function cancelarPedidoCompraMaterial(formData: FormData) {
+  await requireGestor();
+  const pedidoId = String(formData.get("pedido_id") ?? "");
+  const supabase = await createClient();
+
+  const { error } = await supabase
+    .from("pedidos_compra_material")
+    .update({ status: "cancelado" })
+    .eq("id", pedidoId)
+    .eq("status", "pedido");
+  if (error) throw new Error(error.message);
+
+  await recalcularMaterial(supabase);
   revalidarPCP();
 }

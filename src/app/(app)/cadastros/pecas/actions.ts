@@ -70,6 +70,9 @@ export async function updatePeca(formData: FormData) {
   const descricao = String(formData.get("descricao") ?? "").trim();
   const tempoPadrao = Number(formData.get("tempo_padrao_segundos")) || 0;
   const maquinaIds = formData.getAll("maquina_id").map(String);
+  const materialId = String(formData.get("material_id") ?? "").trim() || null;
+  const comprimentoStr = String(formData.get("comprimento_consumido_mm") ?? "").replace(",", ".").trim();
+  const pecasPorFolhaStr = String(formData.get("pecas_por_folha") ?? "").trim();
 
   if (!id || !descricao) throw new Error("Descrição é obrigatória");
 
@@ -77,7 +80,13 @@ export async function updatePeca(formData: FormData) {
 
   const { error } = await supabase
     .from("pecas")
-    .update({ descricao, tempo_padrao_segundos: tempoPadrao > 0 ? tempoPadrao : null })
+    .update({
+      descricao,
+      tempo_padrao_segundos: tempoPadrao > 0 ? tempoPadrao : null,
+      material_id: materialId,
+      comprimento_consumido_mm: comprimentoStr ? Number(comprimentoStr) : null,
+      pecas_por_folha: pecasPorFolhaStr ? Number(pecasPorFolhaStr) : null,
+    })
     .eq("id", id);
   if (error) throw new Error(error.message);
 

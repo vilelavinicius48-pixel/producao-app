@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { STATUS_LABEL, STATUS_BADGE_CLASS } from "@/lib/op-status";
 import { formatSegundos } from "@/lib/tempo";
 import { getOperadorAtual } from "@/lib/auth";
+import { ehFormatoBarra, materialLabel, unidadeMaterial } from "@/lib/pcp/material";
 import { PreparoPanel } from "./PreparoPanel";
 
 function formatDataHora(iso: string | null) {
@@ -20,7 +21,7 @@ export default async function OPDetalhePage({
 
   const { data: op } = await supabase
     .from("ordens_producao")
-    .select("*, pecas(*), maquinas(*)")
+    .select("*, pecas(*), maquinas(*), materiais(*)")
     .eq("numero", Number(numero))
     .single();
 
@@ -33,6 +34,15 @@ export default async function OPDetalhePage({
     tempo_padrao_segundos: number | null;
   };
   const maquina = op.maquinas as unknown as { codigo: string; nome: string };
+  const materialBarra = op.materiais as unknown as Parameters<typeof materialLabel>[0] | null;
+  const materialInfo = materialBarra
+    ? {
+        label: materialLabel(materialBarra),
+        unidade: unidadeMaterial(materialBarra.formato),
+        necessidade: ehFormatoBarra(materialBarra.formato) ? op.material_metros_necessarios : op.material_folhas_necessarias,
+        barras: op.material_barras_necessarias,
+      }
+    : null;
 
   const [operador, { data: maquinasAtivas }, { data: pedido }] = await Promise.all([
     getOperadorAtual(),
@@ -103,7 +113,7 @@ export default async function OPDetalhePage({
       </p>
 
       {operador?.perfil === "gestor" && (
-        <PreparoPanel op={op} maquinas={maquinasAtivas ?? []} pedido={pedido} />
+        <PreparoPanel op={op} maquinas={maquinasAtivas ?? []} pedido={pedido} materialInfo={materialInfo} />
       )}
 
       <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">

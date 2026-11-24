@@ -15,6 +15,7 @@ const NAV_ITEMS: { href: string; label: string; perfis: Perfil[] }[] = [
   { href: "/historico", label: "Histórico", perfis: ["gestor", "qualidade"] },
   { href: "/relatorios/diario", label: "Relatório diário", perfis: ["gestor"] },
   { href: "/cadastros/pecas", label: "Peças", perfis: ["gestor"] },
+  { href: "/cadastros/materiais", label: "Materiais", perfis: ["gestor"] },
   { href: "/cadastros/maquinas", label: "Máquinas", perfis: ["gestor"] },
   { href: "/cadastros/motivos-parada", label: "Motivos de parada", perfis: ["gestor"] },
   { href: "/cadastros/operadores", label: "Usuários", perfis: ["gestor"] },

@@ -2,22 +2,31 @@
 
 import { useActionState, useState } from "react";
 import Link from "next/link";
-import { excluirOPPlanejada, salvarPreparo, trocarMaquina, type EstadoPreparo } from "@/app/(app)/pcp/actions";
-import { PREPARO_ITENS, PREPARO_LABEL, preparoCompleto, type CampoPreparo } from "@/lib/op-status";
+import {
+  excluirOPPlanejada,
+  recalcularMaterialAutomaticoOP,
+  salvarPreparo,
+  trocarMaquina,
+  type EstadoPreparo,
+} from "@/app/(app)/pcp/actions";
+import { PREPARO_CLASS, PREPARO_ITENS, PREPARO_LABEL, preparoCompleto, type CampoPreparo } from "@/lib/op-status";
 import { formatData, formatQtd } from "@/lib/pcp/carteira";
 import type { OrdemProducao, StatusPreparo } from "@/types/database";
 
 const OPCOES: StatusPreparo[] = ["pendente", "aguardando", "ok", "na"];
 const ESTADO_INICIAL: EstadoPreparo = {};
+const OUTROS_ITENS = PREPARO_ITENS.filter((i) => i.campo !== "material_status");
 
 export function PreparoPanel({
   op,
   maquinas,
   pedido,
+  materialInfo,
 }: {
   op: OrdemProducao;
   maquinas: { id: string; codigo: string; nome: string }[];
   pedido: { cliente: string; numero_pedido: string; data_entrega: string; quantidade: number } | null;
+  materialInfo: { label: string; unidade: "m" | "folhas"; necessidade: number | null; barras: number | null } | null;
 }) {
   const editavel = op.status === "planejada" || (op.status === "aberta" && !op.setup_concluido_em);
   const [preparo, setPreparo] = useState<Record<CampoPreparo, StatusPreparo>>(() => {
@@ -25,8 +34,10 @@ export function PreparoPanel({
     for (const item of PREPARO_ITENS) inicial[item.campo] = op[item.campo];
     return inicial;
   });
+  const [editandoMaterial, setEditandoMaterial] = useState(op.material_status_manual);
   const completo = preparoCompleto(preparo);
   const [estado, formAction, pendente] = useActionState(salvarPreparo, ESTADO_INICIAL);
+  const [estadoMaquina, trocarMaquinaAction, trocandoMaquina] = useActionState(trocarMaquina, ESTADO_INICIAL);
 
   return (
     <div className="mt-6 rounded-xl border border-amber-200 bg-white p-4">
@@ -43,8 +54,42 @@ export function PreparoPanel({
       {editavel ? (
         <form action={formAction} className="mt-3 space-y-3">
           <input type="hidden" name="op_id" value={op.id} />
+          <input type="hidden" name="material_manual" value={editandoMaterial ? "true" : "false"} />
+
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            {PREPARO_ITENS.map((i) => (
+            <div className="text-sm">
+              <span className="mb-1 flex items-center justify-between font-medium text-slate-700">
+                Material
+                {!editandoMaterial && (
+                  <button type="button" onClick={() => setEditandoMaterial(true)} className="text-xs font-normal text-brand-600 hover:underline">
+                    editar
+                  </button>
+                )}
+              </span>
+              {editandoMaterial ? (
+                <select
+                  name="material_status"
+                  value={preparo.material_status}
+                  onChange={(e) => setPreparo((p) => ({ ...p, material_status: e.target.value as StatusPreparo }))}
+                  className="w-full rounded-lg border border-slate-300 px-2 py-2 text-sm"
+                >
+                  {OPCOES.map((o) => (
+                    <option key={o} value={o}>
+                      {PREPARO_LABEL[o]}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <span
+                  className={`flex h-[38px] items-center rounded-lg border px-2 text-sm ${PREPARO_CLASS[op.material_status]}`}
+                  title="Calculado automaticamente a partir do estoque e dos pedidos de compra de material"
+                >
+                  {PREPARO_LABEL[op.material_status]}
+                  {op.material_status === "aguardando" && op.previsao_material && ` (previsão ${formatData(op.previsao_material)})`}
+                </span>
+              )}
+            </div>
+            {OUTROS_ITENS.map((i) => (
               <label key={i.campo} className="text-sm">
                 <span className="mb-1 block font-medium text-slate-700">{i.label}</span>
                 <select
@@ -62,8 +107,17 @@ export function PreparoPanel({
               </label>
             ))}
           </div>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-[180px_1fr]">
-            <label className="text-sm">
+
+          {materialInfo && (
+            <p className="text-xs text-slate-500">
+              Precisa de {materialInfo.label}: {formatQtd(Number(materialInfo.necessidade ?? 0))} {materialInfo.unidade}
+              {materialInfo.barras !== null && ` (${materialInfo.barras} barra${materialInfo.barras > 1 ? "s" : ""})`}
+              {op.material_status_manual && " · editado na mão, não recalcula sozinho"}
+            </p>
+          )}
+
+          {editandoMaterial && (
+            <label className="block text-sm sm:w-56">
               <span className="mb-1 block font-medium text-slate-700">Previsão do material</span>
               <input
                 type="date"
@@ -72,17 +126,19 @@ export function PreparoPanel({
                 className="w-full rounded-lg border border-slate-300 px-2 py-2 text-sm"
               />
             </label>
-            <label className="text-sm">
-              <span className="mb-1 block font-medium text-slate-700">Observação</span>
-              <input
-                name="obs_pcp"
-                defaultValue={op.obs_pcp ?? ""}
-                placeholder="Ex.: falta fresa Ø3, dispositivo na retífica…"
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-              />
-            </label>
-          </div>
-          <div className="flex flex-wrap gap-2">
+          )}
+
+          <label className="block text-sm">
+            <span className="mb-1 block font-medium text-slate-700">Observação</span>
+            <input
+              name="obs_pcp"
+              defaultValue={op.obs_pcp ?? ""}
+              placeholder="Ex.: falta fresa Ø3, dispositivo na retífica…"
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+            />
+          </label>
+
+          <div className="flex flex-wrap items-center gap-2">
             <button
               type="submit"
               name="acao"
@@ -115,6 +171,14 @@ export function PreparoPanel({
                 Voltar para planejada
               </button>
             )}
+            {op.material_status_manual && (
+              <form action={recalcularMaterialAutomaticoOP}>
+                <input type="hidden" name="op_id" value={op.id} />
+                <button type="submit" className="text-xs font-medium text-slate-500 hover:underline">
+                  Recalcular material automático
+                </button>
+              </form>
+            )}
           </div>
           {op.status === "planejada" && !completo && (
             <p className="text-xs text-slate-500">Para liberar, deixe todos os itens como OK ou Não se aplica.</p>
@@ -131,7 +195,7 @@ export function PreparoPanel({
 
       {editavel && (
         <div className="mt-4 flex flex-wrap items-end gap-4 border-t border-slate-100 pt-3">
-          <form action={trocarMaquina} className="flex items-end gap-2">
+          <form action={trocarMaquinaAction} className="flex items-end gap-2">
             <input type="hidden" name="op_id" value={op.id} />
             <label className="text-sm">
               <span className="mb-1 block font-medium text-slate-700">Máquina</span>
@@ -145,7 +209,8 @@ export function PreparoPanel({
             </label>
             <button
               type="submit"
-              className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+              disabled={trocandoMaquina}
+              className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
             >
               Trocar máquina
             </button>
@@ -162,6 +227,9 @@ export function PreparoPanel({
             </form>
           )}
         </div>
+      )}
+      {estadoMaquina.erro && (
+        <p className="mt-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{estadoMaquina.erro}</p>
       )}
     </div>
   );

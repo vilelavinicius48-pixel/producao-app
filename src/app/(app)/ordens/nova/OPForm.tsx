@@ -3,22 +3,29 @@
 import { useMemo, useState } from "react";
 import { createOP } from "../actions";
 import { formatSegundos } from "@/lib/tempo";
-import type { Maquina } from "@/types/database";
+import { calcularConsumoOP, materialLabel, unidadeMaterial } from "@/lib/pcp/material";
+import { formatQtd } from "@/lib/pcp/carteira";
+import type { FormatoMaterial, Maquina } from "@/types/database";
 
-interface PecaComRelacoes {
+export interface PecaComRelacoes {
   id: string;
   codigo: string;
   descricao: string;
   tempo_padrao_segundos: number | null;
+  comprimento_consumido_mm: number | null;
+  pecas_por_folha: number | null;
   pecas_maquinas: { maquina_id: string }[];
   peca_materiais: { material: string; quantidade_por_unidade: number; unidade_medida: string }[];
+  materiais: { formato: FormatoMaterial; tipo: string; medida_a_mm: number; medida_b_mm: number | null; espessura_mm: number | null } | null;
 }
 
 export function OPForm({ pecas, maquinas }: { pecas: PecaComRelacoes[]; maquinas: Maquina[] }) {
   const [pecaId, setPecaId] = useState("");
   const [quantidade, setQuantidade] = useState("");
+  const [maquinaId, setMaquinaId] = useState("");
 
   const peca = useMemo(() => pecas.find((p) => p.id === pecaId), [pecas, pecaId]);
+  const maquina = useMemo(() => maquinas.find((m) => m.id === maquinaId), [maquinas, maquinaId]);
 
   const maquinasCompativeis = useMemo(() => {
     if (!peca) return [];
@@ -82,12 +89,14 @@ export function OPForm({ pecas, maquinas }: { pecas: PecaComRelacoes[]; maquinas
           <select
             name="maquina_id"
             required
+            value={maquinaId}
+            onChange={(e) => setMaquinaId(e.target.value)}
             className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none"
           >
             <option value="">Selecione...</option>
             {maquinasCompativeis.map((m) => (
               <option key={m.id} value={m.id}>
-                {m.codigo} — {m.nome}
+                {m.nome}
               </option>
             ))}
           </select>
@@ -108,9 +117,36 @@ export function OPForm({ pecas, maquinas }: { pecas: PecaComRelacoes[]; maquinas
               <span className="text-amber-700">peça sem tempo padrão (cadastro pendente)</span>
             )}
           </p>
-          {peca.peca_materiais.length > 0 ? (
+          {peca.materiais &&
+            (() => {
+              const consumo = calcularConsumoOP({
+                formato: peca.materiais.formato,
+                quantidadePlanejada: qtd,
+                comprimentoConsumidoMm: peca.comprimento_consumido_mm,
+                pecasPorFolha: peca.pecas_por_folha,
+                barraComprimentoMm: maquina?.barra_comprimento_mm ?? null,
+                barraSobraMm: maquina?.barra_sobra_mm ?? 0,
+              });
+              const necessidade = consumo.metrosNecessarios ?? consumo.folhasNecessarias;
+              return (
+                <p className="mt-2">
+                  Material ({materialLabel(peca.materiais)}):{" "}
+                  {!maquina ? (
+                    <span className="text-amber-700">selecione a máquina para calcular</span>
+                  ) : consumo.erro ? (
+                    <span className="text-amber-700">{consumo.erro}</span>
+                  ) : (
+                    <strong>
+                      {formatQtd(necessidade ?? 0)} {unidadeMaterial(peca.materiais.formato)}
+                      {consumo.barrasNecessarias !== null && ` (${consumo.barrasNecessarias} barras)`}
+                    </strong>
+                  )}
+                </p>
+              );
+            })()}
+          {peca.peca_materiais.length > 0 && (
             <div className="mt-2">
-              <p className="font-medium">Material necessário total:</p>
+              <p className="font-medium">Outros materiais necessários:</p>
               <ul className="ml-4 list-disc">
                 {peca.peca_materiais.map((m, i) => (
                   <li key={i}>
@@ -119,7 +155,8 @@ export function OPForm({ pecas, maquinas }: { pecas: PecaComRelacoes[]; maquinas
                 ))}
               </ul>
             </div>
-          ) : (
+          )}
+          {!peca.materiais && peca.peca_materiais.length === 0 && (
             <p className="mt-2 text-brand-700">Nenhum material cadastrado para esta peça.</p>
           )}
         </div>

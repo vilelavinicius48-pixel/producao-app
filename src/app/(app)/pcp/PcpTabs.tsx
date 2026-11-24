@@ -8,6 +8,8 @@ export const PCP_LINKS = [
   { href: "/pcp/programacao", label: "Programação" },
   { href: "/pcp/pendencias", label: "Pendências" },
   { href: "/pcp/estoque", label: "Estoque" },
+  { href: "/pcp/necessidade", label: "Necessidade de material" },
+  { href: "/pcp/compras", label: "Compras de material" },
   { href: "/pcp/importar", label: "Importar pedidos" },
 ];
 

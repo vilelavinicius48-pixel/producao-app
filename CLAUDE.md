@@ -37,6 +37,7 @@ Porte do projeto: pequeno, mas com complexidade real de regras de negócio e con
 8. **Histórico** — todos os apontamentos, paradas e inspeções de cada OP
 9. **Relatório diário** — planejado x realizado x parado, por máquina
 10. **PCP** (`/pcp`, só gestor) — carteira de pedidos importada da planilha do sistema, geração de OP a partir do pedido, preparação (material/ferramenta/dispositivo/programa), fila por máquina, pendências e estoque de peças prontas
+11. **Material do PCP** — catálogo de materiais (barra ou chapa), estoque de material em metros/folhas, necessidade de material (o que falta comprar) e pedidos de compra com previsão de chegada; o status "Material" da OP passa a ser calculado sozinho
 
 ## 4. Modelo de dados (entidades e relacionamentos)
 
@@ -44,11 +45,26 @@ Porte do projeto: pequeno, mas com complexidade real de regras de negócio e con
 pecas
  ├── código, descrição, tempo_padrao_por_unidade
  ├── maquinas_compativeis (N:N com maquinas)
- └── materiais_necessarios (lista: material + quantidade por unidade)
+ ├── materiais_necessarios (lista livre: material + quantidade por unidade — informativo, sem estoque)
+ └── material (FK, opcional) + comprimento_consumido_mm (barra) ou pecas_por_folha (chapa)
 
 maquinas
  ├── código, nome
- └── status_atual (calculado: livre / rodando / parada)
+ ├── status_atual (calculado: livre / rodando / parada)
+ └── barra_comprimento_mm + barra_sobra_mm (vazio = não trabalha com barra)
+
+materiais (catálogo)
+ ├── formato: redonda | sextavada | quadrada | retangular | tubo | chapa
+ ├── tipo (liga) + medidas (bitola/largura/altura/espessura conforme o formato)
+ └── barra = controlado em metros · chapa = controlado em folhas
+
+estoque_material_movimentos
+ └── material (FK), tipo (entrada/saida/ajuste), quantidade (m ou folhas)
+
+pedidos_compra_material
+ ├── material (FK), quantidade, fornecedor, data_pedido
+ ├── previsao_chegada (editável — fornecedor informa depois do pedido)
+ └── status: pedido | recebido | cancelado
 
 operadores
  ├── matrícula, nome, ativo
@@ -105,6 +121,12 @@ inspecoes_qualidade
 | 16 | Código de produto que não existe em `pecas` é criado automaticamente sem tempo padrão ("cadastro pendente"). Peça sem máquinas compatíveis aceita qualquer máquina, e a escolhida é gravada como compatível |
 | 17 | Fila por máquina = OPs `planejada`/`aberta` ordenadas por `sequencia`; a primeira é a "próxima" e deve estar liberada antes da atual acabar (setup externo) |
 | 18 | Estoque de peças prontas = soma de `estoque_movimentos` (entrada +, saída −, ajuste ±; contagem gera ajuste pela diferença). Na carteira, o estoque de cada peça cobre primeiro os itens com entrega mais cedo. Por enquanto não há baixa automática na conclusão da OP nem no faturamento |
+| 19 | Material é tipo + formato (redonda, sextavada, quadrada, retangular, tubo ou chapa) + medidas. Formatos em barra são comprados/controlados em **metros**; chapa, em **folhas**. Cada máquina tem um tamanho de barra fixo (mm) + sobra de ponta não aproveitável; chapa não usa esses dois campos (o tamanho da folha é do material, não da máquina) |
+| 20 | Peça tem um material (opcional) + comprimento consumido por peça (barra, já incluindo corte/sangria) **ou** peças por folha (chapa, digitado por quem cadastra — o corte de chapa segue um desenho de aproveitamento que o sistema não calcula sozinho) |
+| 21 | Ao criar a OP (ou trocar a máquina), o sistema calcula e grava um retrato de quantas barras/folhas e quantos metros são necessários (peças por barra = (tamanho da barra − sobra) ÷ comprimento por peça). Esse retrato não se atualiza sozinho se o cadastro da peça mudar depois — igual ao tempo estimado |
+| 22 | Status "Material" da OP é calculado automaticamente (OK / Aguardando / Pendente) a partir do estoque de material e dos pedidos de compra em aberto. Quando o estoque não cobre todas as OPs do mesmo material, prioridade é **entrega mais cedo primeiro** (vale também entre OPs de máquinas diferentes); a ordem da fila da máquina só desempata quando a entrega é igual ou inexistente. O gestor pode sobrescrever manualmente a qualquer momento — isso trava o recálculo automático dessa OP até clicar em "Recalcular material automático" |
+| 23 | Pedido de compra de material: material, quantidade, fornecedor (texto livre), data do pedido e previsão de chegada (editável depois — o fornecedor costuma informar só após o pedido feito). Ao marcar "recebido", lança a entrada no estoque (quantidade recebida pode ser menor que a pedida, para entrega parcial) |
+| 24 | Tela "Necessidade de material": para cada material, soma os metros/folhas de todas as OPs `planejada`/`aberta`, desconta estoque e pedidos de compra em aberto, mostra o que falta comprar e tem botão para copiar a lista em texto (para colar no WhatsApp) |
 
 ## 6. Fases de desenvolvimento
 
@@ -137,6 +159,8 @@ inspecoes_qualidade
 | Concorrência (2 operadores, mesma OP/máquina) | Trava por OP + máquina (regra 6) |
 | Escopo crescendo além do previsto | Entregar em fases, uma de cada vez, sem pular etapas |
 | Internet instável na fábrica afetando Supabase Cloud/Vercel | Avaliar hospedagem local (Postgres + Next.js em servidor próprio) se for um problema real |
+| Consultas simultâneas (`Promise.all`) numa Server Action que muda dados podem derrubar a sessão do Supabase (renovação de token em corrida) | Nas Server Actions que escrevem no banco, rodar as consultas em sequência, não em paralelo. Página só de leitura pode usar `Promise.all` normalmente |
+| Bug pré-existente conhecido: `/ordens/nova` (OPForm → `createOP`) desloga o usuário ao gerar a OP, mesmo sem erro nenhum no servidor — função raramente usada, já que o fluxo real é `/pcp/nova-op` (que funciona normalmente). Ainda não diagnosticado a fundo; investigar se for reativar essa tela | — |
 
 ## 9. Registro de mudanças
 
@@ -146,3 +170,5 @@ inspecoes_qualidade
 |---|---|
 | — | Versão inicial do documento |
 | 2026-11-24 | Módulo PCP (migração 0009): `pedido_itens`, `importacoes_pedidos`, `estoque_movimentos` + view `estoque_pecas`; OP ganhou `planejada`, preparo, `sequencia`, `pedido_item_id`; tempo padrão da peça passou a ser opcional; 12 máquinas cadastradas. Regras 13–18 |
+| 2026-11-24 | Módulo de Material do PCP (migração 0010): catálogo `materiais` (barra/chapa), `estoque_material_movimentos` + view `estoque_materiais`, `pedidos_compra_material`; máquina ganhou tamanho de barra + sobra de ponta; peça ganhou material + comprimento consumido/peças por folha; OP ganhou retrato de material (barras/folhas/metros) + `material_status_manual`. Status "Material" da OP passou a ser calculado automaticamente. Telas novas: Cadastros → Materiais, PCP → Necessidade de material, PCP → Compras de material, Cadastros → Materiais → Importar estoque inicial. Regras 19–24 |
+| 2026-11-24 | Importado o estoque inicial real de matéria-prima pela planilha "Controle de Matéria Prima" (322 materiais, ~156 lançamentos de estoque); 9 itens da planilha não se encaixam no modelo atual (perfil, cantoneira, disco, item avulso) e ficaram para cadastro manual, se forem matéria-prima de verdade |

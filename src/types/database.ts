@@ -15,6 +15,8 @@ export type Maquina = {
   nome: string;
   ativo: boolean;
   created_at: string;
+  barra_comprimento_mm: number | null;
+  barra_sobra_mm: number;
 };
 
 export type MotivoParada = {
@@ -30,6 +32,53 @@ export type Peca = {
   descricao: string;
   tempo_padrao_segundos: number | null;
   ativo: boolean;
+  created_at: string;
+  material_id: string | null;
+  comprimento_consumido_mm: number | null;
+  pecas_por_folha: number | null;
+};
+
+/** Formato do material: decide o que medida_a/medida_b/espessura significam. Ver lib/pcp/material.ts. */
+export type FormatoMaterial = "redonda" | "sextavada" | "quadrada" | "retangular" | "tubo" | "chapa";
+
+export type Material = {
+  id: string;
+  formato: FormatoMaterial;
+  tipo: string;
+  medida_a_mm: number;
+  medida_b_mm: number | null;
+  espessura_mm: number | null;
+  ativo: boolean;
+  created_at: string;
+};
+
+export type EstoqueMaterialMovimento = {
+  id: string;
+  material_id: string;
+  tipo: "entrada" | "saida" | "ajuste";
+  quantidade: number;
+  observacao: string | null;
+  criado_por: string | null;
+  created_at: string;
+};
+
+export type EstoqueMaterial = {
+  material_id: string;
+  saldo: number;
+  atualizado_em: string;
+};
+
+export type PedidoCompraMaterial = {
+  id: string;
+  material_id: string;
+  quantidade: number;
+  quantidade_recebida: number | null;
+  fornecedor: string;
+  data_pedido: string;
+  previsao_chegada: string | null;
+  status: "pedido" | "recebido" | "cancelado";
+  recebido_em: string | null;
+  criado_por: string | null;
   created_at: string;
 };
 
@@ -72,6 +121,11 @@ export type OrdemProducao = {
   previsao_material: string | null;
   obs_pcp: string | null;
   liberada_em: string | null;
+  material_id: string | null;
+  material_barras_necessarias: number | null;
+  material_folhas_necessarias: number | null;
+  material_metros_necessarios: number | null;
+  material_status_manual: boolean;
 };
 
 export type PedidoItem = {
@@ -190,7 +244,15 @@ export type Database = {
         Row: Peca;
         Insert: Partial<Peca> & Pick<Peca, "codigo" | "descricao">;
         Update: Partial<Peca>;
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "pecas_material_id_fkey";
+            columns: ["material_id"];
+            isOneToOne: false;
+            referencedRelation: "materiais";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       pecas_maquinas: {
         Row: PecaMaquina;
@@ -255,6 +317,13 @@ export type Database = {
             referencedRelation: "pedido_itens";
             referencedColumns: ["id"];
           },
+          {
+            foreignKeyName: "ordens_producao_material_id_fkey";
+            columns: ["material_id"];
+            isOneToOne: false;
+            referencedRelation: "materiais";
+            referencedColumns: ["id"];
+          },
         ];
       };
       pedido_itens: {
@@ -288,6 +357,41 @@ export type Database = {
             columns: ["peca_id"];
             isOneToOne: false;
             referencedRelation: "pecas";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      materiais: {
+        Row: Material;
+        Insert: Partial<Material> & Pick<Material, "formato" | "tipo" | "medida_a_mm">;
+        Update: Partial<Material>;
+        Relationships: [];
+      };
+      estoque_material_movimentos: {
+        Row: EstoqueMaterialMovimento;
+        Insert: Partial<EstoqueMaterialMovimento> &
+          Pick<EstoqueMaterialMovimento, "material_id" | "tipo" | "quantidade">;
+        Update: Partial<EstoqueMaterialMovimento>;
+        Relationships: [
+          {
+            foreignKeyName: "estoque_material_movimentos_material_id_fkey";
+            columns: ["material_id"];
+            isOneToOne: false;
+            referencedRelation: "materiais";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      pedidos_compra_material: {
+        Row: PedidoCompraMaterial;
+        Insert: Partial<PedidoCompraMaterial> & Pick<PedidoCompraMaterial, "material_id" | "quantidade" | "fornecedor">;
+        Update: Partial<PedidoCompraMaterial>;
+        Relationships: [
+          {
+            foreignKeyName: "pedidos_compra_material_material_id_fkey";
+            columns: ["material_id"];
+            isOneToOne: false;
+            referencedRelation: "materiais";
             referencedColumns: ["id"];
           },
         ];
@@ -377,6 +481,10 @@ export type Database = {
       };
       estoque_pecas: {
         Row: EstoquePeca;
+        Relationships: [];
+      };
+      estoque_materiais: {
+        Row: EstoqueMaterial;
         Relationships: [];
       };
     };

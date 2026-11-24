@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { formatSegundos } from "@/lib/tempo";
 import { TimeInput } from "@/components/TimeInput";
 import { updatePeca } from "../actions";
+import { MaterialPecaForm } from "./MaterialPecaForm";
 
 export default async function PecaDetalhePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -11,17 +12,19 @@ export default async function PecaDetalhePage({ params }: { params: Promise<{ id
   const { data: peca } = await supabase.from("pecas").select("*").eq("id", id).single();
   if (!peca) notFound();
 
-  const [{ data: compativeis }, { data: materiais }, { data: maquinas }] = await Promise.all([
+  const [{ data: compativeis }, { data: materiais }, { data: maquinas }, { data: materiaisAtivos }] = await Promise.all([
     supabase.from("pecas_maquinas").select("maquina_id").eq("peca_id", id),
     supabase.from("peca_materiais").select("*").eq("peca_id", id),
-    supabase.from("maquinas").select("id, codigo, nome").eq("ativo", true).order("codigo"),
+    supabase.from("maquinas").select("id, codigo, nome, barra_comprimento_mm, barra_sobra_mm").eq("ativo", true).order("codigo"),
+    supabase.from("materiais").select("id, formato, tipo, medida_a_mm, medida_b_mm, espessura_mm").eq("ativo", true).order("tipo"),
   ]);
 
   const compativeisIds = new Set((compativeis ?? []).map((c) => c.maquina_id));
+  const maquinasCompativeis = (maquinas ?? []).filter((m) => compativeisIds.has(m.id));
   const pendencias = [
     peca.tempo_padrao_segundos === null && "tempo padrão",
     compativeisIds.size === 0 && "máquinas compatíveis",
-    (materiais ?? []).length === 0 && "material",
+    peca.material_id === null && "material",
   ].filter(Boolean) as string[];
 
   return (
@@ -74,10 +77,20 @@ export default async function PecaDetalhePage({ params }: { params: Promise<{ id
                   defaultChecked={compativeisIds.has(m.id)}
                   className="h-4 w-4"
                 />
-                {m.codigo}
+                {m.nome}
               </label>
             ))}
           </div>
+        </div>
+        <div>
+          <p className="mb-2 text-sm font-medium text-slate-700">Material (barra/chapa)</p>
+          <MaterialPecaForm
+            materiais={materiaisAtivos ?? []}
+            maquinasCompativeis={maquinasCompativeis}
+            materialIdAtual={peca.material_id}
+            comprimentoAtual={peca.comprimento_consumido_mm}
+            pecasPorFolhaAtual={peca.pecas_por_folha}
+          />
         </div>
         <button
           type="submit"

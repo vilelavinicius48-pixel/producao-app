@@ -1,5 +1,5 @@
 ﻿import { createClient } from "@/lib/supabase/server";
-import { createMaquina, toggleMaquinaAtiva } from "./actions";
+import { atualizarBarraMaquina, createMaquina, toggleMaquinaAtiva } from "./actions";
 
 export default async function MaquinasPage() {
   const supabase = await createClient();
@@ -47,6 +47,7 @@ export default async function MaquinasPage() {
               <th className="px-4 py-3">Código</th>
               <th className="px-4 py-3">Nome</th>
               <th className="px-4 py-3">Status</th>
+              <th className="px-4 py-3">Barra (mm) / sobra de ponta</th>
               <th className="px-4 py-3" />
             </tr>
           </thead>
@@ -64,6 +65,34 @@ export default async function MaquinasPage() {
                     {m.ativo ? "Ativa" : "Inativa"}
                   </span>
                 </td>
+                <td className="px-4 py-3">
+                  <form action={atualizarBarraMaquina} className="flex items-center gap-1.5">
+                    <input type="hidden" name="id" value={m.id} />
+                    <input
+                      name="barra_comprimento_mm"
+                      inputMode="decimal"
+                      placeholder="Não usa barra"
+                      defaultValue={m.barra_comprimento_mm ?? ""}
+                      title="Tamanho da barra em mm (ex.: 3000 para 3 m). Deixe vazio se a máquina não trabalha com barra."
+                      className="w-28 rounded border border-slate-300 px-2 py-1 text-xs"
+                    />
+                    <span className="text-xs text-slate-400">sobra</span>
+                    <input
+                      name="barra_sobra_mm"
+                      inputMode="decimal"
+                      placeholder="0"
+                      defaultValue={m.barra_sobra_mm ?? 0}
+                      title="Sobra de ponta da barra que não dá pra usar (mm)"
+                      className="w-16 rounded border border-slate-300 px-2 py-1 text-xs"
+                    />
+                    <button
+                      type="submit"
+                      className="rounded bg-slate-800 px-2 py-1 text-xs font-semibold text-white hover:bg-slate-700"
+                    >
+                      Salvar
+                    </button>
+                  </form>
+                </td>
                 <td className="px-4 py-3 text-right">
                   <form action={toggleMaquinaAtiva}>
                     <input type="hidden" name="id" value={m.id} />
@@ -77,7 +106,7 @@ export default async function MaquinasPage() {
             ))}
             {maquinas?.length === 0 && (
               <tr>
-                <td colSpan={4} className="px-4 py-6 text-center text-slate-500">
+                <td colSpan={5} className="px-4 py-6 text-center text-slate-500">
                   Nenhuma máquina cadastrada
                 </td>
               </tr>
