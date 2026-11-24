@@ -7,6 +7,7 @@ import {
 import { createClient } from "@/lib/supabase/server";
 import { formatData, formatQtd, hojeISO } from "@/lib/pcp/carteira";
 import { materialLabel, unidadeMaterial } from "@/lib/pcp/material";
+import { MaterialCombobox } from "@/components/MaterialCombobox";
 
 export default async function ComprasMaterialPage() {
   const supabase = await createClient();
@@ -33,15 +34,9 @@ export default async function ComprasMaterialPage() {
       </p>
 
       <form action={criarPedidoCompraMaterial} className="mt-6 flex flex-wrap items-end gap-3 rounded-xl border border-slate-200 bg-white p-4">
-        <div>
+        <div className="w-64">
           <label className="mb-1 block text-sm font-medium text-slate-700">Material</label>
-          <select name="material_id" required className="rounded-lg border border-slate-300 px-3 py-2 text-sm">
-            {(materiais ?? []).map((m) => (
-              <option key={m.id} value={m.id}>
-                {materialLabel(m)} ({unidadeMaterial(m.formato)})
-              </option>
-            ))}
-          </select>
+          <MaterialCombobox name="material_id" materiais={materiais ?? []} required placeholder="Buscar material…" />
         </div>
         <div>
           <label className="mb-1 block text-sm font-medium text-slate-700">Quantidade</label>

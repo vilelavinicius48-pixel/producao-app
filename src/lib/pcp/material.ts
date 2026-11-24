@@ -48,6 +48,14 @@ export function materialLabel(m: {
   }
 }
 
+/** Tira acento e caixa pra buscar "titanio" e achar "Titânio" (comparação tolerante). */
+export function normalizarBusca(s: string): string {
+  return s
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase();
+}
+
 export type ConsumoOP = {
   pecasPorUnidade: number | null;
   barrasNecessarias: number | null;

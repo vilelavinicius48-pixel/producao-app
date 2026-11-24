@@ -1,17 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { calcularConsumoOP, ehFormatoBarra, materialLabel } from "@/lib/pcp/material";
-import type { FormatoMaterial } from "@/types/database";
-
-type MaterialOpcao = {
-  id: string;
-  formato: FormatoMaterial;
-  tipo: string;
-  medida_a_mm: number;
-  medida_b_mm: number | null;
-  espessura_mm: number | null;
-};
+import { calcularConsumoOP, ehFormatoBarra } from "@/lib/pcp/material";
+import { MaterialCombobox, type MaterialOpcao } from "@/components/MaterialCombobox";
 
 type MaquinaCompat = { id: string; nome: string; barra_comprimento_mm: number | null; barra_sobra_mm: number };
 
@@ -40,19 +31,13 @@ export function MaterialPecaForm({
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <label className="text-sm">
           <span className="mb-1 block font-medium text-slate-700">Material</span>
-          <select
+          <MaterialCombobox
             name="material_id"
-            value={materialId}
-            onChange={(e) => setMaterialId(e.target.value)}
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
-          >
-            <option value="">Sem material cadastrado</option>
-            {materiais.map((m) => (
-              <option key={m.id} value={m.id}>
-                {materialLabel(m)}
-              </option>
-            ))}
-          </select>
+            materiais={materiais}
+            defaultValue={materialId}
+            onChange={setMaterialId}
+            placeholder="Sem material — buscar…"
+          />
         </label>
         {material && ehBarra && (
           <label className="text-sm">
