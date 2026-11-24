@@ -58,7 +58,9 @@ export function TimeInput({ name, label, defaultSegundos = 0, required }: Props)
           <span className="mt-1 text-xs text-slate-600">seg</span>
         </div>
       </div>
-      {total === 0 && <p className="mt-1 text-xs text-red-600">Informe um tempo maior que zero</p>}
+      {total === 0 && required && (
+        <p className="mt-1 text-xs text-red-600">Informe um tempo maior que zero</p>
+      )}
     </div>
   );
 }

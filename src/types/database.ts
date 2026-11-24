@@ -28,7 +28,7 @@ export type Peca = {
   id: string;
   codigo: string;
   descricao: string;
-  tempo_padrao_segundos: number;
+  tempo_padrao_segundos: number | null;
   ativo: boolean;
   created_at: string;
 };
@@ -46,7 +46,10 @@ export type PecaMaterial = {
   unidade_medida: string;
 };
 
-export type StatusOP = "aberta" | "setup" | "em_producao" | "parada" | "concluida";
+export type StatusOP = "planejada" | "aberta" | "setup" | "em_producao" | "parada" | "concluida";
+
+/** Situação de cada item de preparação da OP (material, ferramenta, dispositivo, programa). */
+export type StatusPreparo = "pendente" | "aguardando" | "ok" | "na";
 
 export type OrdemProducao = {
   id: string;
@@ -54,12 +57,68 @@ export type OrdemProducao = {
   peca_id: string;
   maquina_id: string;
   quantidade_planejada: number;
-  tempo_estimado_segundos: number;
+  tempo_estimado_segundos: number | null;
   status: StatusOP;
   criado_por: string | null;
   created_at: string;
   concluida_em: string | null;
   setup_concluido_em: string | null;
+  pedido_item_id: string | null;
+  sequencia: number | null;
+  material_status: StatusPreparo;
+  ferramenta_status: StatusPreparo;
+  dispositivo_status: StatusPreparo;
+  programa_status: StatusPreparo;
+  previsao_material: string | null;
+  obs_pcp: string | null;
+  liberada_em: string | null;
+};
+
+export type PedidoItem = {
+  id: string;
+  chave: string;
+  cliente: string;
+  numero_pedido: string;
+  pedido_compra: string | null;
+  data_pedido: string | null;
+  data_entrega: string;
+  codigo_produto: string;
+  descricao: string;
+  quantidade: number;
+  peca_id: string | null;
+  empresa: string | null;
+  status: "aberto" | "encerrado";
+  encerrado_em: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type ImportacaoPedidos = {
+  id: string;
+  arquivo: string | null;
+  linhas: number;
+  novos: number;
+  alterados: number;
+  encerrados: number;
+  reabertos: number;
+  criado_por: string | null;
+  created_at: string;
+};
+
+export type EstoqueMovimento = {
+  id: string;
+  peca_id: string;
+  tipo: "entrada" | "saida" | "ajuste";
+  quantidade: number;
+  observacao: string | null;
+  criado_por: string | null;
+  created_at: string;
+};
+
+export type EstoquePeca = {
+  peca_id: string;
+  saldo: number;
+  atualizado_em: string;
 };
 
 export type Setup = {
@@ -129,7 +188,7 @@ export type Database = {
       };
       pecas: {
         Row: Peca;
-        Insert: Partial<Peca> & Pick<Peca, "codigo" | "descricao" | "tempo_padrao_segundos">;
+        Insert: Partial<Peca> & Pick<Peca, "codigo" | "descricao">;
         Update: Partial<Peca>;
         Relationships: [];
       };
@@ -172,7 +231,7 @@ export type Database = {
       ordens_producao: {
         Row: OrdemProducao;
         Insert: Partial<OrdemProducao> &
-          Pick<OrdemProducao, "peca_id" | "maquina_id" | "quantidade_planejada" | "tempo_estimado_segundos">;
+          Pick<OrdemProducao, "peca_id" | "maquina_id" | "quantidade_planejada">;
         Update: Partial<OrdemProducao>;
         Relationships: [
           {
@@ -187,6 +246,48 @@ export type Database = {
             columns: ["maquina_id"];
             isOneToOne: false;
             referencedRelation: "maquinas";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "ordens_producao_pedido_item_id_fkey";
+            columns: ["pedido_item_id"];
+            isOneToOne: false;
+            referencedRelation: "pedido_itens";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      pedido_itens: {
+        Row: PedidoItem;
+        Insert: Partial<PedidoItem> &
+          Pick<PedidoItem, "chave" | "cliente" | "numero_pedido" | "data_entrega" | "codigo_produto" | "descricao" | "quantidade">;
+        Update: Partial<PedidoItem>;
+        Relationships: [
+          {
+            foreignKeyName: "pedido_itens_peca_id_fkey";
+            columns: ["peca_id"];
+            isOneToOne: false;
+            referencedRelation: "pecas";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      importacoes_pedidos: {
+        Row: ImportacaoPedidos;
+        Insert: Partial<ImportacaoPedidos>;
+        Update: Partial<ImportacaoPedidos>;
+        Relationships: [];
+      };
+      estoque_movimentos: {
+        Row: EstoqueMovimento;
+        Insert: Partial<EstoqueMovimento> & Pick<EstoqueMovimento, "peca_id" | "tipo" | "quantidade">;
+        Update: Partial<EstoqueMovimento>;
+        Relationships: [
+          {
+            foreignKeyName: "estoque_movimentos_peca_id_fkey";
+            columns: ["peca_id"];
+            isOneToOne: false;
+            referencedRelation: "pecas";
             referencedColumns: ["id"];
           },
         ];
@@ -272,6 +373,10 @@ export type Database = {
     Views: {
       op_progresso: {
         Row: OpProgresso;
+        Relationships: [];
+      };
+      estoque_pecas: {
+        Row: EstoquePeca;
         Relationships: [];
       };
     };

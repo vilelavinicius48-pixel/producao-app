@@ -62,6 +62,39 @@ export async function createPeca(formData: FormData) {
   redirect("/cadastros/pecas");
 }
 
+/** Completa/edita o cadastro da peça: descrição, tempo padrão (0 = sem tempo) e máquinas compatíveis. */
+export async function updatePeca(formData: FormData) {
+  await requireGestor();
+
+  const id = String(formData.get("id") ?? "");
+  const descricao = String(formData.get("descricao") ?? "").trim();
+  const tempoPadrao = Number(formData.get("tempo_padrao_segundos")) || 0;
+  const maquinaIds = formData.getAll("maquina_id").map(String);
+
+  if (!id || !descricao) throw new Error("Descrição é obrigatória");
+
+  const supabase = await createClient();
+
+  const { error } = await supabase
+    .from("pecas")
+    .update({ descricao, tempo_padrao_segundos: tempoPadrao > 0 ? tempoPadrao : null })
+    .eq("id", id);
+  if (error) throw new Error(error.message);
+
+  const { error: errDel } = await supabase.from("pecas_maquinas").delete().eq("peca_id", id);
+  if (errDel) throw new Error(errDel.message);
+  if (maquinaIds.length > 0) {
+    const { error: errIns } = await supabase
+      .from("pecas_maquinas")
+      .insert(maquinaIds.map((maquina_id) => ({ peca_id: id, maquina_id })));
+    if (errIns) throw new Error(errIns.message);
+  }
+
+  revalidatePath(`/cadastros/pecas/${id}`);
+  revalidatePath("/cadastros/pecas");
+  revalidatePath("/pcp", "layout");
+}
+
 export async function togglePecaAtiva(formData: FormData) {
   await requireGestor();
   const id = String(formData.get("id"));

@@ -2,6 +2,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { STATUS_LABEL, STATUS_BADGE_CLASS } from "@/lib/op-status";
 import { formatSegundos } from "@/lib/tempo";
+import { getOperadorAtual } from "@/lib/auth";
+import { PreparoPanel } from "./PreparoPanel";
 
 function formatDataHora(iso: string | null) {
   if (!iso) return "-";
@@ -28,9 +30,21 @@ export default async function OPDetalhePage({
     id: string;
     codigo: string;
     descricao: string;
-    tempo_padrao_segundos: number;
+    tempo_padrao_segundos: number | null;
   };
   const maquina = op.maquinas as unknown as { codigo: string; nome: string };
+
+  const [operador, { data: maquinasAtivas }, { data: pedido }] = await Promise.all([
+    getOperadorAtual(),
+    supabase.from("maquinas").select("id, codigo").eq("ativo", true).order("codigo"),
+    op.pedido_item_id
+      ? supabase
+          .from("pedido_itens")
+          .select("cliente, numero_pedido, data_entrega, quantidade")
+          .eq("id", op.pedido_item_id)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
+  ]);
 
   const { data: materiais } = await supabase
     .from("peca_materiais")
@@ -70,10 +84,11 @@ export default async function OPDetalhePage({
   }, 0);
   const saldo = op.quantidade_planejada - produzidaTotal;
   const eficienciaGlobal =
-    tempoRodadoTotalSegundos > 0
+    tempoRodadoTotalSegundos > 0 && peca.tempo_padrao_segundos !== null
       ? (peca.tempo_padrao_segundos * produzidaTotal) / tempoRodadoTotalSegundos
       : null;
-  const tempoRestanteSegundos = saldo > 0 ? saldo * peca.tempo_padrao_segundos : 0;
+  const tempoRestanteSegundos =
+    peca.tempo_padrao_segundos === null ? null : saldo > 0 ? saldo * peca.tempo_padrao_segundos : 0;
 
   return (
     <div>
@@ -86,6 +101,10 @@ export default async function OPDetalhePage({
       <p className="mt-1 text-sm text-slate-600">
         {peca.codigo} — {peca.descricao} · Máquina {maquina.codigo} — {maquina.nome}
       </p>
+
+      {operador?.perfil === "gestor" && (
+        <PreparoPanel op={op} maquinas={maquinasAtivas ?? []} pedido={pedido} />
+      )}
 
       <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
         <div className="rounded-xl border border-slate-200 bg-white p-4">
@@ -201,7 +220,9 @@ export default async function OPDetalhePage({
                   ? (new Date(a.timestamp_stop).getTime() - new Date(a.timestamp_start).getTime()) / 1000
                   : null;
                 const esperado =
-                  duracaoSegundos !== null ? Math.round(duracaoSegundos / peca.tempo_padrao_segundos) : null;
+                  duracaoSegundos !== null && peca.tempo_padrao_segundos
+                    ? Math.round(duracaoSegundos / peca.tempo_padrao_segundos)
+                    : null;
                 return (
                   <tr key={a.id}>
                     <td className="py-1 pr-3">{operador?.nome ?? "-"}</td>

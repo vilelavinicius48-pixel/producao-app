@@ -63,6 +63,17 @@ export function ApontamentoAcoes({
 }: Props) {
   const [view, setView] = useState<View>("buttons");
 
+  if (status === "planejada") {
+    return (
+      <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-center text-amber-900">
+        <p className="text-lg font-semibold">OP ainda não liberada</p>
+        <p className="mt-1 text-sm">
+          Falta preparar material, ferramenta, dispositivo ou programa. Fale com o PCP.
+        </p>
+      </div>
+    );
+  }
+
   if (status === "aberta" && !setupConcluido) {
     return (
       <form action={iniciarSetupAction} className="space-y-4">

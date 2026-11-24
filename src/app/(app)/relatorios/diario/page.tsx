@@ -90,11 +90,11 @@ export default async function RelatorioDiarioPage({
   for (const a of apontamentosFiltrados) {
     const op = a.ordens_producao as unknown as {
       maquina_id: string;
-      pecas: { tempo_padrao_segundos: number };
+      pecas: { tempo_padrao_segundos: number | null };
     } | null;
     if (!op) continue;
     const segundos = (new Date(a.timestamp_stop!).getTime() - new Date(a.timestamp_start).getTime()) / 1000;
-    const padraoGanho = op.pecas.tempo_padrao_segundos * (a.quantidade_produzida ?? 0);
+    const padraoGanho = (op.pecas.tempo_padrao_segundos ?? 0) * (a.quantidade_produzida ?? 0);
     const inspecao = a.inspecoes_qualidade as unknown as {
       quantidade_aprovada: number;
       quantidade_reprovada: number;

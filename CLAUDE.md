@@ -36,6 +36,7 @@ Porte do projeto: pequeno, mas com complexidade real de regras de negócio e con
 7. **Qualidade** — inspeção por apontamento (aprovado/reprovado/retrabalho + observação)
 8. **Histórico** — todos os apontamentos, paradas e inspeções de cada OP
 9. **Relatório diário** — planejado x realizado x parado, por máquina
+10. **PCP** (`/pcp`, só gestor) — carteira de pedidos importada da planilha do sistema, geração de OP a partir do pedido, preparação (material/ferramenta/dispositivo/programa), fila por máquina, pendências e estoque de peças prontas
 
 ## 4. Modelo de dados (entidades e relacionamentos)
 
@@ -98,6 +99,12 @@ inspecoes_qualidade
 | 10 | Dashboard mostra só OPs `em_producao` ou `parada`; `concluida` vai para o histórico |
 | 11 | Histórico armazena todos os apontamentos, paradas e inspeções, consultável durante e após a produção |
 | 12 | Relatório diário compara planejado x realizado x parado por máquina, indicando atraso |
+| 13 | Estados da OP agora: `planejada` → `aberta` (exibida como **Liberada**) → `setup` → `em_producao`/`parada` → `concluida`. Toda OP nova nasce `planejada`; setup/apontamento só iniciam em OP `aberta` |
+| 14 | OP só é liberada quando material, ferramenta, dispositivo e programa estão `ok` ou `na` (não se aplica). OP liberada que ainda não começou o setup pode voltar para planejada |
+| 15 | Carteira vem da planilha "Pedidos em Aberto por Cliente (Detalhado)" do sistema (.xls/.xlsx). Chave do item = nº pedido + código + data de entrega. O arquivo é a carteira **completa**: item aberto que não vier no arquivo é encerrado; se voltar, é reaberto. Linhas repetidas são somadas. Tudo é importado como está (atrasados, saldos fracionados, conjuntos) |
+| 16 | Código de produto que não existe em `pecas` é criado automaticamente sem tempo padrão ("cadastro pendente"). Peça sem máquinas compatíveis aceita qualquer máquina, e a escolhida é gravada como compatível |
+| 17 | Fila por máquina = OPs `planejada`/`aberta` ordenadas por `sequencia`; a primeira é a "próxima" e deve estar liberada antes da atual acabar (setup externo) |
+| 18 | Estoque de peças prontas = soma de `estoque_movimentos` (entrada +, saída −, ajuste ±; contagem gera ajuste pela diferença). Na carteira, o estoque de cada peça cobre primeiro os itens com entrega mais cedo. Por enquanto não há baixa automática na conclusão da OP nem no faturamento |
 
 ## 6. Fases de desenvolvimento
 
@@ -138,3 +145,4 @@ inspecoes_qualidade
 | Data | Mudança |
 |---|---|
 | — | Versão inicial do documento |
+| 2026-11-24 | Módulo PCP (migração 0009): `pedido_itens`, `importacoes_pedidos`, `estoque_movimentos` + view `estoque_pecas`; OP ganhou `planejada`, preparo, `sequencia`, `pedido_item_id`; tempo padrão da peça passou a ser opcional; 12 máquinas cadastradas. Regras 13–18 |

@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { requireGestor } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import { criarOPPlanejada } from "@/lib/pcp/criar-op";
 
 export async function createOP(formData: FormData) {
   const gestor = await requireGestor();
@@ -16,38 +17,12 @@ export async function createOP(formData: FormData) {
   }
 
   const supabase = await createClient();
+  const numero = await criarOPPlanejada(supabase, {
+    pecaId,
+    maquinaId,
+    quantidade: quantidadePlanejada,
+    criadoPor: gestor.id,
+  });
 
-  const { data: peca, error: pecaError } = await supabase
-    .from("pecas")
-    .select("tempo_padrao_segundos")
-    .eq("id", pecaId)
-    .single();
-  if (pecaError || !peca) throw new Error("Peça não encontrada");
-
-  const { data: compat, error: compatError } = await supabase
-    .from("pecas_maquinas")
-    .select("maquina_id")
-    .eq("peca_id", pecaId)
-    .eq("maquina_id", maquinaId)
-    .maybeSingle();
-  if (compatError) throw new Error(compatError.message);
-  if (!compat) throw new Error("Máquina selecionada não é compatível com a peça");
-
-  const tempoEstimadoSegundos = peca.tempo_padrao_segundos * quantidadePlanejada;
-
-  const { data: op, error } = await supabase
-    .from("ordens_producao")
-    .insert({
-      peca_id: pecaId,
-      maquina_id: maquinaId,
-      quantidade_planejada: quantidadePlanejada,
-      tempo_estimado_segundos: tempoEstimadoSegundos,
-      criado_por: gestor.id,
-    })
-    .select("numero")
-    .single();
-
-  if (error || !op) throw new Error(error?.message ?? "Falha ao criar OP");
-
-  redirect(`/ordens/${op.numero}`);
+  redirect(`/ordens/${numero}`);
 }

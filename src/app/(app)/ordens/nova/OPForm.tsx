@@ -9,7 +9,7 @@ interface PecaComRelacoes {
   id: string;
   codigo: string;
   descricao: string;
-  tempo_padrao_segundos: number;
+  tempo_padrao_segundos: number | null;
   pecas_maquinas: { maquina_id: string }[];
   peca_materiais: { material: string; quantidade_por_unidade: number; unidade_medida: string }[];
 }
@@ -22,12 +22,15 @@ export function OPForm({ pecas, maquinas }: { pecas: PecaComRelacoes[]; maquinas
 
   const maquinasCompativeis = useMemo(() => {
     if (!peca) return [];
+    // Peça sem máquinas cadastradas: libera todas; a escolhida passa a ser compatível.
+    if (peca.pecas_maquinas.length === 0) return maquinas;
     const ids = new Set(peca.pecas_maquinas.map((pm) => pm.maquina_id));
     return maquinas.filter((m) => ids.has(m.id));
   }, [peca, maquinas]);
 
   const qtd = Number(quantidade) || 0;
-  const tempoEstimadoSegundos = peca ? peca.tempo_padrao_segundos * qtd : 0;
+  const tempoEstimadoSegundos =
+    peca && peca.tempo_padrao_segundos !== null ? peca.tempo_padrao_segundos * qtd : null;
 
   return (
     <form action={createOP} className="space-y-6">
@@ -68,10 +71,14 @@ export function OPForm({ pecas, maquinas }: { pecas: PecaComRelacoes[]; maquinas
         {!peca ? (
           <p className="text-sm text-slate-600">Selecione uma peça primeiro.</p>
         ) : maquinasCompativeis.length === 0 ? (
-          <p className="text-sm text-red-600">
-            Nenhuma máquina compatível cadastrada para esta peça.
-          </p>
+          <p className="text-sm text-red-600">Nenhuma máquina ativa cadastrada.</p>
         ) : (
+          <>
+          {peca.pecas_maquinas.length === 0 && (
+            <p className="mb-2 text-xs text-amber-700">
+              Peça sem máquinas cadastradas — a máquina escolhida será gravada no cadastro da peça.
+            </p>
+          )}
           <select
             name="maquina_id"
             required
@@ -84,6 +91,7 @@ export function OPForm({ pecas, maquinas }: { pecas: PecaComRelacoes[]; maquinas
               </option>
             ))}
           </select>
+          </>
         )}
       </div>
 
@@ -91,7 +99,14 @@ export function OPForm({ pecas, maquinas }: { pecas: PecaComRelacoes[]; maquinas
         <div className="rounded-xl border border-brand-200 bg-brand-50 p-4 text-sm text-brand-900">
           <p className="font-semibold">Cálculo automático</p>
           <p className="mt-1">
-            Tempo estimado: <strong>{formatSegundos(tempoEstimadoSegundos)}</strong> (h:min:s)
+            Tempo estimado:{" "}
+            {tempoEstimadoSegundos !== null ? (
+              <>
+                <strong>{formatSegundos(tempoEstimadoSegundos)}</strong> (h:min:s)
+              </>
+            ) : (
+              <span className="text-amber-700">peça sem tempo padrão (cadastro pendente)</span>
+            )}
           </p>
           {peca.peca_materiais.length > 0 ? (
             <div className="mt-2">

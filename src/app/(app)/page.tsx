@@ -23,6 +23,7 @@ export default async function DashboardPage() {
       .from("ordens_producao")
       .select("id, numero, status, maquina_id, quantidade_planejada, pecas(codigo, descricao)")
       .eq("status", "aberta")
+      .order("sequencia", { ascending: true, nullsFirst: false })
       .order("created_at", { ascending: true }),
     supabase
       .from("setups")
