@@ -84,6 +84,45 @@ export type PecaRoteiroEtapa = {
   created_at: string;
 };
 
+export type StatusCaixa = "aguardando_etapa" | "em_etapa" | "aguardando_decisao" | "concluida" | "mesclada";
+export type QualidadeStatusCaixa = "em_processo" | "aprovado" | "reprovado" | "retrabalho";
+
+export type Caixa = {
+  id: string;
+  op_id: string;
+  apontamento_id: string | null;
+  peca_id: string;
+  maquina_id: string;
+  quantidade: number;
+  quantidade_original: number;
+  operador_id: string;
+  horario: string;
+  roteiro_atual_id: string | null;
+  status: StatusCaixa;
+  qualidade_status: QualidadeStatusCaixa;
+  mesclada_em_id: string | null;
+  created_at: string;
+};
+
+export type StatusCaixaEtapa = "aguardando" | "em_andamento" | "concluida";
+
+export type CaixaEtapa = {
+  id: string;
+  caixa_id: string;
+  peca_roteiro_etapa_id: string | null;
+  etapa_id: string;
+  status: StatusCaixaEtapa;
+  operador_inicio_id: string | null;
+  timestamp_inicio: string | null;
+  operador_fim_id: string | null;
+  timestamp_fim: string | null;
+  quantidade_boa: number | null;
+  quantidade_refugo: number | null;
+  motivo_refugo_id: string | null;
+  observacao: string | null;
+  created_at: string;
+};
+
 export type PecaPlanoMedicaoCota = {
   id: string;
   peca_id: string;
@@ -369,6 +408,62 @@ export type Database = {
             columns: ["peca_id"];
             isOneToOne: false;
             referencedRelation: "pecas";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      caixas: {
+        Row: Caixa;
+        Insert: Partial<Caixa> & Pick<Caixa, "op_id" | "peca_id" | "maquina_id" | "quantidade" | "quantidade_original" | "operador_id" | "horario">;
+        Update: Partial<Caixa>;
+        Relationships: [
+          {
+            foreignKeyName: "caixas_op_id_fkey";
+            columns: ["op_id"];
+            isOneToOne: false;
+            referencedRelation: "ordens_producao";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "caixas_peca_id_fkey";
+            columns: ["peca_id"];
+            isOneToOne: false;
+            referencedRelation: "pecas";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "caixas_maquina_id_fkey";
+            columns: ["maquina_id"];
+            isOneToOne: false;
+            referencedRelation: "maquinas";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "caixas_roteiro_atual_id_fkey";
+            columns: ["roteiro_atual_id"];
+            isOneToOne: false;
+            referencedRelation: "peca_roteiro_etapas";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      caixa_etapas: {
+        Row: CaixaEtapa;
+        Insert: Partial<CaixaEtapa> & Pick<CaixaEtapa, "caixa_id" | "etapa_id">;
+        Update: Partial<CaixaEtapa>;
+        Relationships: [
+          {
+            foreignKeyName: "caixa_etapas_caixa_id_fkey";
+            columns: ["caixa_id"];
+            isOneToOne: false;
+            referencedRelation: "caixas";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "caixa_etapas_etapa_id_fkey";
+            columns: ["etapa_id"];
+            isOneToOne: false;
+            referencedRelation: "etapas";
             referencedColumns: ["id"];
           },
         ];

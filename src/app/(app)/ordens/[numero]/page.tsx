@@ -1,4 +1,5 @@
 ﻿import { notFound } from "next/navigation";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { STATUS_LABEL, STATUS_BADGE_CLASS } from "@/lib/op-status";
 import { formatSegundos } from "@/lib/tempo";
@@ -111,6 +112,16 @@ export default async function OPDetalhePage({
       <p className="mt-1 text-sm text-slate-600">
         {peca.codigo} — {peca.descricao} · Máquina {maquina.nome}
       </p>
+      {op.status !== "planejada" && (
+        <div className="mt-2 flex flex-wrap gap-3 text-sm">
+          <Link href={`/ordens/${op.numero}/ficha`} className="font-medium text-brand-600 hover:underline">
+            Imprimir Ficha da OP →
+          </Link>
+          <Link href={`/op/${op.numero}`} className="font-medium text-brand-600 hover:underline">
+            Abrir no celular →
+          </Link>
+        </div>
+      )}
 
       {operador?.perfil === "gestor" && (
         <PreparoPanel op={op} maquinas={maquinasAtivas ?? []} pedido={pedido} materialInfo={materialInfo} />

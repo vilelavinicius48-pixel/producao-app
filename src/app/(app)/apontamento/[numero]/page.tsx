@@ -71,7 +71,7 @@ export default async function ApontamentoOPPage({
         </span>
       </div>
       <p className="mt-1 text-sm text-slate-600">
-        {peca.codigo} — {peca.descricao} · Máquina {maquina.codigo}
+        {peca.codigo} — {peca.descricao} · Máquina {maquina.nome}
       </p>
       <p className="text-sm font-medium text-slate-700">
         Produzido: {progresso?.quantidade_produzida_total ?? 0} / {op.quantidade_planejada}

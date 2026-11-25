@@ -40,3 +40,35 @@ body {
   background: var(--background);
   color: var(--foreground);
 }
+
+/*
+  Ficha da OP: imprime só o conteúdo da ficha (sem o cabeçalho/menu/rodapé do
+  app), uma página A4 por "página" da ficha. Usado em /ordens/[numero]/ficha.
+*/
+@media print {
+  header,
+  nav,
+  .no-print {
+    display: none !important;
+  }
+  main {
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+  body {
+    background: white;
+  }
+}
+
+@page {
+  size: A4;
+  margin: 10mm;
+}
+
+.ficha-pagina {
+  page-break-after: always;
+}
+.ficha-pagina:last-child {
+  page-break-after: auto;
+}
