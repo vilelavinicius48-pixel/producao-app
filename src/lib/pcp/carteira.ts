@@ -19,6 +19,11 @@ export function formatQtd(n: number): string {
   return n.toLocaleString("pt-BR", { maximumFractionDigits: 2 });
 }
 
+/** Quantidade de peças: sempre número inteiro, nunca com vírgula. */
+export function formatQtdPecas(n: number): string {
+  return Math.round(n).toLocaleString("pt-BR");
+}
+
 export type Situacao = "a_programar" | "parcial" | "aguardando" | "liberada" | "producao" | "produzido" | "estoque";
 
 export const SITUACAO_LABEL: Record<Situacao, string> = {

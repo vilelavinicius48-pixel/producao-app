@@ -8,10 +8,10 @@ import { CadastrosMenu } from "./CadastrosMenu";
 import type { Perfil } from "@/types/database";
 
 const NAV_ITEMS: { href: string; label: string; perfis: Perfil[] }[] = [
-  { href: "/apontamento", label: "Apontamento", perfis: ["gestor", "operador"] },
   { href: "/pcp/carteira", label: "PCP", perfis: ["gestor"] },
   { href: "/ordens", label: "Ordens de produção", perfis: ["gestor"] },
   { href: "/qualidade", label: "Qualidade", perfis: ["gestor", "qualidade"] },
+  { href: "/inspecao-linha", label: "Inspeção de Linha", perfis: ["gestor", "qualidade"] },
   { href: "/historico", label: "Histórico", perfis: ["gestor", "qualidade"] },
   { href: "/relatorios/diario", label: "Relatório diário", perfis: ["gestor"] },
   { href: "/cadastros/pecas", label: "Peças", perfis: ["gestor"] },
@@ -30,11 +30,10 @@ const PAINEL = { href: "/", label: "Painel", icon: "painel" as const };
 const BOTTOM_NAV_PRIMARIOS: Record<Perfil, { href: string; label: string; icon: "painel" | "apontamento" | "ordens" | "qualidade" | "historico" }[]> = {
   gestor: [
     PAINEL,
-    { href: "/apontamento", label: "Apontamento", icon: "apontamento" },
     { href: "/ordens", label: "Ordens", icon: "ordens" },
     { href: "/historico", label: "Histórico", icon: "historico" },
   ],
-  operador: [PAINEL, { href: "/apontamento", label: "Apontamento", icon: "apontamento" }],
+  operador: [PAINEL],
   qualidade: [PAINEL, { href: "/qualidade", label: "Qualidade", icon: "qualidade" }, { href: "/historico", label: "Histórico", icon: "historico" }],
 };
 

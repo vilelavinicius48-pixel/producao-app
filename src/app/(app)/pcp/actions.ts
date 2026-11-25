@@ -267,6 +267,9 @@ export async function criarOPDoPedido(formData: FormData) {
   if (!itemId || !maquinaId || !quantidade || quantidade <= 0) {
     throw new Error("Escolha a máquina e uma quantidade válida");
   }
+  if (!Number.isInteger(quantidade)) {
+    throw new Error("A quantidade da OP é em peças inteiras (sem vírgula)");
+  }
 
   const supabase = await createClient();
   const { data: item, error } = await supabase
@@ -525,6 +528,7 @@ export async function movimentarEstoque(formData: FormData) {
   const observacao = String(formData.get("observacao") ?? "").trim() || null;
 
   if (!pecaId || !Number.isFinite(quantidade) || quantidade < 0) throw new Error("Quantidade inválida");
+  if (!Number.isInteger(quantidade)) throw new Error("Quantidade de peças é sempre um número inteiro, sem vírgula");
 
   const supabase = await createClient();
 

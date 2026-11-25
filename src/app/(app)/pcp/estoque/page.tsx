@@ -2,7 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { movimentarEstoque } from "../actions";
 import { buscarTodos } from "@/lib/pcp/paginar";
-import { formatQtd } from "@/lib/pcp/carteira";
+import { formatQtd, formatQtdPecas } from "@/lib/pcp/carteira";
 
 export default async function EstoquePage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
   const { q = "" } = await searchParams;
@@ -74,7 +74,7 @@ export default async function EstoquePage({ searchParams }: { searchParams: Prom
                   </td>
                   <td className="px-3 py-2 text-right">{formatQtd(demanda.get(p.id) ?? 0)}</td>
                   <td className="px-3 py-2 text-right">
-                    <span className="font-semibold">{formatQtd(Number(s?.saldo ?? 0))}</span>
+                    <span className="font-semibold">{formatQtdPecas(Number(s?.saldo ?? 0))}</span>
                     {s?.atualizado_em && (
                       <span className="block text-[11px] text-slate-500">
                         {new Date(s.atualizado_em).toLocaleDateString("pt-BR")}
@@ -91,7 +91,10 @@ export default async function EstoquePage({ searchParams }: { searchParams: Prom
                       </select>
                       <input
                         name="quantidade"
-                        inputMode="decimal"
+                        type="number"
+                        min="0"
+                        step="1"
+                        inputMode="numeric"
                         required
                         placeholder="Qtd"
                         className="w-20 rounded border border-slate-300 px-2 py-1 text-xs"

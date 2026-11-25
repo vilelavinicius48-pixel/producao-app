@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import QRCode from "qrcode";
 import { createClient } from "@/lib/supabase/server";
 import { getBaseUrl } from "@/lib/base-url";
-import { formatData, formatQtd } from "@/lib/pcp/carteira";
+import { formatData, formatQtdPecas } from "@/lib/pcp/carteira";
 import { TIPO_ETAPA_LABEL } from "@/lib/roteiro";
 import { ImprimirButton } from "./ImprimirButton";
 import type { TipoEtapa } from "@/types/database";
@@ -114,7 +114,7 @@ export default async function FichaOPPage({ params }: { params: Promise<{ numero
             </tr>
             <tr>
               <td className="border border-slate-400 bg-slate-50 px-2 py-1.5 font-semibold">Quantidade</td>
-              <td className="border border-slate-400 px-2 py-1.5">{formatQtd(Number(op.quantidade_planejada))} pç</td>
+              <td className="border border-slate-400 px-2 py-1.5">{formatQtdPecas(Number(op.quantidade_planejada))} pç</td>
               <td className="border border-slate-400 bg-slate-50 px-2 py-1.5 font-semibold">Máquina</td>
               <td className="border border-slate-400 px-2 py-1.5">{maquina?.nome ?? "-"}</td>
             </tr>

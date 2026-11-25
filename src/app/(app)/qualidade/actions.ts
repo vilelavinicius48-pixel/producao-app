@@ -20,6 +20,9 @@ export async function createInspecao(formData: FormData) {
   ) {
     throw new Error("Preencha as quantidades da inspeção (valores não negativos)");
   }
+  if ([quantidadeAprovada, quantidadeReprovada, quantidadeRetrabalho].some((q) => !Number.isInteger(q))) {
+    throw new Error("Quantidade de peças é sempre um número inteiro, sem vírgula");
+  }
 
   const supabase = await createClient();
 
@@ -48,6 +51,41 @@ export async function createInspecao(formData: FormData) {
   });
 
   if (error) throw new Error(error.message);
+
+  revalidatePath("/qualidade");
+  redirect("/qualidade");
+}
+
+export async function createInspecaoSublote(formData: FormData) {
+  const avaliador = await requireQualidade();
+
+  const subloteEtapaId = String(formData.get("sublote_etapa_id"));
+  const quantidadeAprovada = Number(formData.get("quantidade_aprovada") ?? 0);
+  const quantidadeReprovada = Number(formData.get("quantidade_reprovada") ?? 0);
+  const quantidadeRetrabalho = Number(formData.get("quantidade_retrabalho") ?? 0);
+  const observacao = String(formData.get("observacao") ?? "").trim();
+
+  if (
+    !subloteEtapaId ||
+    [quantidadeAprovada, quantidadeReprovada, quantidadeRetrabalho].some((q) => Number.isNaN(q) || q < 0)
+  ) {
+    throw new Error("Preencha as quantidades da inspeção (valores não negativos)");
+  }
+  if ([quantidadeAprovada, quantidadeReprovada, quantidadeRetrabalho].some((q) => !Number.isInteger(q))) {
+    throw new Error("Quantidade de peças é sempre um número inteiro, sem vírgula");
+  }
+
+  const supabase = await createClient();
+
+  const { error } = await supabase.rpc("concluir_inspecao_sublote", {
+    p_sublote_etapa_id: subloteEtapaId,
+    p_avaliador_id: avaliador.id,
+    p_quantidade_aprovada: quantidadeAprovada,
+    p_quantidade_reprovada: quantidadeReprovada,
+    p_quantidade_retrabalho: quantidadeRetrabalho,
+    p_observacao: observacao || null,
+  });
+  if (error) throw new Error(error.message.replace(/^.*ERROR:\s*/i, ""));
 
   revalidatePath("/qualidade");
   redirect("/qualidade");

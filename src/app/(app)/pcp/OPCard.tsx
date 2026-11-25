@@ -7,7 +7,7 @@ import {
   STATUS_BADGE_CLASS,
   STATUS_LABEL,
 } from "@/lib/op-status";
-import { formatData, formatQtd } from "@/lib/pcp/carteira";
+import { formatData, formatQtdPecas } from "@/lib/pcp/carteira";
 import type { StatusOP, StatusPreparo } from "@/types/database";
 
 export type OPQuadro = {
@@ -72,8 +72,8 @@ export function OPCard({
 
       <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-600">
         <span>
-          {produzido > 0 ? `${formatQtd(produzido)} / ` : ""}
-          {formatQtd(Number(op.quantidade_planejada))} pç
+          {produzido > 0 ? `${formatQtdPecas(produzido)} / ` : ""}
+          {formatQtdPecas(Number(op.quantidade_planejada))} pç
         </span>
         {op.pedido_itens && (
           <span className={atrasado ? "font-semibold text-red-700" : ""}>

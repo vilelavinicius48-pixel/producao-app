@@ -8,6 +8,33 @@ function revalidarPeca(pecaId: string) {
   revalidatePath(`/cadastros/pecas/${pecaId}`);
 }
 
+/**
+ * Garante que toda máquina fixa de etapa "máquina" do roteiro já está marcada como
+ * compatível com a peça. Sem isso, quando o operador gera a OP de 2ª operação pelo
+ * celular, `criarOPPlanejada` tentaria cadastrar a compatibilidade na hora — e isso
+ * exige perfil gestor (RLS de `pecas_maquinas`), travando o botão pro operador.
+ */
+async function garantirCompatibilidadeRoteiro(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  pecaId: string
+) {
+  const { data: etapasMaquina } = await supabase
+    .from("peca_roteiro_etapas")
+    .select("maquina_id")
+    .eq("peca_id", pecaId)
+    .not("maquina_id", "is", null);
+  const maquinaIds = [...new Set((etapasMaquina ?? []).map((e) => e.maquina_id as string))];
+  if (maquinaIds.length === 0) return;
+
+  const { error } = await supabase
+    .from("pecas_maquinas")
+    .upsert(
+      maquinaIds.map((maquina_id) => ({ peca_id: pecaId, maquina_id })),
+      { onConflict: "peca_id,maquina_id", ignoreDuplicates: true }
+    );
+  if (error) throw new Error(error.message);
+}
+
 // ---------------------------------------------------------------------------
 // Roteiro (etapas pós-máquina)
 // ---------------------------------------------------------------------------
@@ -43,6 +70,10 @@ export async function adicionarRoteiroEtapa(formData: FormData) {
     tratamento_id: etapa.tipo === "externo" ? tratamentoId : null,
   });
   if (error) throw new Error(error.message);
+
+  if (etapa.tipo === "maquina" && maquinaId) {
+    await garantirCompatibilidadeRoteiro(supabase, pecaId);
+  }
 
   revalidarPeca(pecaId);
 }
@@ -114,6 +145,8 @@ export async function copiarRoteiro(formData: FormData) {
     }))
   );
   if (errIns) throw new Error(errIns.message);
+
+  await garantirCompatibilidadeRoteiro(supabase, pecaId);
 
   revalidarPeca(pecaId);
 }

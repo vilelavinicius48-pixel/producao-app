@@ -2,7 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { marcarPreparoOk } from "../actions";
 import { PREPARO_ITENS, PREPARO_LABEL, type CampoPreparo } from "@/lib/op-status";
-import { formatData, formatQtd, hojeISO } from "@/lib/pcp/carteira";
+import { formatData, formatQtd, formatQtdPecas, hojeISO } from "@/lib/pcp/carteira";
 import { buscarTodos } from "@/lib/pcp/paginar";
 import type { OPQuadro } from "../OPCard";
 
@@ -91,7 +91,7 @@ export default async function PendenciasPage() {
                           OP {o.numero} · {o.maquinas?.nome}
                         </Link>{" "}
                         <span className="text-slate-700">
-                          {o.pecas?.codigo} — {formatQtd(Number(o.quantidade_planejada))} pç
+                          {o.pecas?.codigo} — {formatQtdPecas(Number(o.quantidade_planejada))} pç
                         </span>
                         <p className="text-xs text-slate-500">
                           {o.pedido_itens && (

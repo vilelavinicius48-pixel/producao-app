@@ -84,7 +84,13 @@ export type PecaRoteiroEtapa = {
   created_at: string;
 };
 
-export type StatusSublote = "aguardando_etapa" | "em_etapa" | "aguardando_decisao" | "concluida" | "mesclada";
+export type StatusSublote =
+  | "aguardando_etapa"
+  | "em_etapa"
+  | "aguardando_decisao"
+  | "concluida"
+  | "mesclada"
+  | "transferida";
 export type QualidadeStatusSublote = "em_processo" | "aprovado" | "reprovado" | "retrabalho";
 
 export type Sublote = {
@@ -225,6 +231,8 @@ export type OrdemProducao = {
   material_folhas_necessarias: number | null;
   material_metros_necessarios: number | null;
   material_status_manual: boolean;
+  op_origem_id: string | null;
+  roteiro_etapa_origem_id: string | null;
 };
 
 export type PedidoItem = {
@@ -303,12 +311,29 @@ export type Parada = {
 
 export type InspecaoQualidade = {
   id: string;
-  apontamento_id: string;
+  apontamento_id: string | null;
+  sublote_etapa_id: string | null;
   quantidade_aprovada: number;
   quantidade_reprovada: number;
   quantidade_retrabalho: number;
   observacao: string | null;
   avaliador_id: string;
+  created_at: string;
+};
+
+export type StatusInspecaoLinha = "ok" | "nao_ok" | "parada";
+export type TurnoInspecaoLinha = "manha" | "tarde" | "noite";
+
+export type InspecaoLinha = {
+  id: string;
+  op_id: string;
+  maquina_id: string;
+  peca_id: string;
+  inspetor_id: string;
+  situacao_geral: StatusInspecaoLinha;
+  motivo_id: string | null;
+  turno: TurnoInspecaoLinha;
+  observacao: string | null;
   created_at: string;
 };
 
@@ -552,6 +577,20 @@ export type Database = {
             referencedRelation: "materiais";
             referencedColumns: ["id"];
           },
+          {
+            foreignKeyName: "ordens_producao_op_origem_id_fkey";
+            columns: ["op_origem_id"];
+            isOneToOne: false;
+            referencedRelation: "ordens_producao";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "ordens_producao_roteiro_etapa_origem_id_fkey";
+            columns: ["roteiro_etapa_origem_id"];
+            isOneToOne: false;
+            referencedRelation: "peca_roteiro_etapas";
+            referencedColumns: ["id"];
+          },
         ];
       };
       pedido_itens: {
@@ -689,7 +728,7 @@ export type Database = {
       };
       inspecoes_qualidade: {
         Row: InspecaoQualidade;
-        Insert: Partial<InspecaoQualidade> & Pick<InspecaoQualidade, "apontamento_id" | "avaliador_id">;
+        Insert: Partial<InspecaoQualidade> & Pick<InspecaoQualidade, "avaliador_id">;
         Update: Partial<InspecaoQualidade>;
         Relationships: [
           {
@@ -697,6 +736,56 @@ export type Database = {
             columns: ["apontamento_id"];
             isOneToOne: true;
             referencedRelation: "apontamentos";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "inspecoes_qualidade_sublote_etapa_id_fkey";
+            columns: ["sublote_etapa_id"];
+            isOneToOne: true;
+            referencedRelation: "sublote_etapas";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      inspecoes_linha: {
+        Row: InspecaoLinha;
+        Insert: Partial<InspecaoLinha> &
+          Pick<InspecaoLinha, "op_id" | "maquina_id" | "peca_id" | "inspetor_id" | "situacao_geral" | "turno">;
+        Update: Partial<InspecaoLinha>;
+        Relationships: [
+          {
+            foreignKeyName: "inspecoes_linha_op_id_fkey";
+            columns: ["op_id"];
+            isOneToOne: false;
+            referencedRelation: "ordens_producao";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "inspecoes_linha_maquina_id_fkey";
+            columns: ["maquina_id"];
+            isOneToOne: false;
+            referencedRelation: "maquinas";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "inspecoes_linha_peca_id_fkey";
+            columns: ["peca_id"];
+            isOneToOne: false;
+            referencedRelation: "pecas";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "inspecoes_linha_inspetor_id_fkey";
+            columns: ["inspetor_id"];
+            isOneToOne: false;
+            referencedRelation: "operadores";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "inspecoes_linha_motivo_id_fkey";
+            columns: ["motivo_id"];
+            isOneToOne: false;
+            referencedRelation: "motivos_refugo";
             referencedColumns: ["id"];
           },
         ];
@@ -748,6 +837,35 @@ export type Database = {
       voltar_parada: {
         Args: { p_op_id: string; p_motivo_id: string; p_operador_id: string };
         Returns: Apontamento;
+      };
+      avancar_sublote: {
+        Args: { p_sublote_id: string; p_quantidade: number };
+        Returns: void;
+      };
+      iniciar_etapa_sublote: {
+        Args: { p_sublote_etapa_id: string; p_operador_id: string };
+        Returns: void;
+      };
+      concluir_etapa_sublote: {
+        Args: {
+          p_sublote_etapa_id: string;
+          p_operador_id: string;
+          p_quantidade_boa: number;
+          p_quantidade_refugo: number;
+          p_motivo_refugo_id: string | null;
+        };
+        Returns: void;
+      };
+      concluir_inspecao_sublote: {
+        Args: {
+          p_sublote_etapa_id: string;
+          p_avaliador_id: string;
+          p_quantidade_aprovada: number;
+          p_quantidade_reprovada: number;
+          p_quantidade_retrabalho: number;
+          p_observacao: string | null;
+        };
+        Returns: void;
       };
     };
   };

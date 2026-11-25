@@ -38,7 +38,8 @@ Porte do projeto: pequeno, mas com complexidade real de regras de negócio e con
 9. **Relatório diário** — planejado x realizado x parado, por máquina
 10. **PCP** (`/pcp`, só gestor) — carteira de pedidos importada da planilha do sistema, geração de OP a partir do pedido, preparação (material/ferramenta/dispositivo/programa), fila por máquina, pendências e estoque de peças prontas
 11. **Material do PCP** — catálogo de materiais (barra ou chapa), estoque de material em metros/folhas, necessidade de material (o que falta comprar) e pedidos de compra com previsão de chegada; o status "Material" da OP passa a ser calculado sozinho
-12. **Pós-máquina** (em construção, por partes) — depois que a peça sai da máquina, segue sozinha um roteiro de etapas (rebarbação, lavagem, inspeção, tratamento externo, 2ª operação em máquina, etc.) até virar peça pronta, em vez do gestor decidir uma a uma. Parte 1 (pronta): cadastro de etapas/postos, tratamentos, fornecedores e motivos de refugo; roteiro e plano de medição por peça. Parte 2 (pronta): sublote gerado automaticamente ao fechar o apontamento, Ficha da OP impressa com QR code e folha de medição, página da OP no celular (só leitura por enquanto). Partes seguintes (ainda não feitas): botões Iniciar/Concluir etapa no celular, inspeção de qualidade como etapa do roteiro, juntar sublotes, quadro "onde está cada lote", tratamento externo (envio/retorno) e entrada automática no estoque ao concluir um roteiro de verdade
+12. **Pós-máquina** (em construção, por partes) — depois que a peça sai da máquina, segue sozinha um roteiro de etapas (rebarbação, lavagem, inspeção, tratamento externo, 2ª operação em máquina, etc.) até virar peça pronta, em vez do gestor decidir uma a uma. Parte 1 (pronta): cadastro de etapas/postos, tratamentos, fornecedores e motivos de refugo; roteiro e plano de medição por peça. Parte 2 (pronta): sublote gerado automaticamente ao fechar o apontamento, Ficha da OP impressa com QR code e folha de medição, página da OP no celular. Parte 3 (pronta): botões Iniciar/Concluir etapa no celular (manual/externo), geração automática da OP de 2ª operação (máquina), e inspeção de qualidade como etapa do roteiro integrada ao módulo de Qualidade já existente (sem duplicar nada). Partes seguintes (ainda não feitas): juntar sublotes, quadro "onde está cada lote", fila por etapa (tela de PC/tablet), tratamento externo com registro de envio/retorno e lista de atrasados, e decisão do gestor sobre sublotes `aguardando_decisao` (retrabalho)
+13. **Inspeção de Linha** (em construção) — checklist rápido do perfil qualidade sobre a máquina/OP em produção: situação geral (OK/Não OK/Parada) + motivo se não for OK. Pronto: registro do checklist (`/inspecao-linha/[numero]`, acessado clicando na máquina no Painel) e histórico (`/inspecao-linha`). Ainda não feito: dashboard com visão geral de pendências por máquina
 
 ## 4. Modelo de dados (entidades e relacionamentos)
 
@@ -98,7 +99,7 @@ saquinhos com etiqueta de papel, não em caixa, daí o nome)
  ├── quantidade (atual, cai com refugo pelo caminho) + quantidade_original
  ├── operador (FK), horário — é como o sublote é identificado na prática (igual a etiqueta escrita à mão)
  ├── roteiro_atual (FK peca_roteiro_etapas, null = sem próxima etapa)
- ├── status: aguardando_etapa | em_etapa | aguardando_decisao | concluida | mesclada
+ ├── status: aguardando_etapa | em_etapa | aguardando_decisao | concluida | mesclada | transferida
  └── qualidade_status: em_processo (branca) | aprovado (verde) | reprovado (rosa) | retrabalho (amarela)
 
 sublote_etapas (histórico: cada passagem de um sublote por uma etapa)
@@ -114,6 +115,9 @@ ordens_producao (OP)
  ├── peça (FK), quantidade_planejada, máquina (FK)
  ├── status: em_producao | parada | concluida
  ├── tempo_estimado (calculado), material_necessario (calculado)
+ ├── op_origem + roteiro_etapa_origem (FKs, só preenchidos em OP de 2ª operação:
+ │   de qual OP e de qual etapa "máquina" do roteiro ela nasceu — o sublote que
+ │   sair dela continua o roteiro depois daquela etapa, não do zero)
  └── 1:N apontamentos, 1:N paradas
 
 apontamentos
@@ -129,10 +133,20 @@ paradas
  └── motivo (FK, preenchido só no retorno)
 
 inspecoes_qualidade
- ├── apontamento (FK, 1:1)
- ├── resultado: aprovado | reprovado | retrabalho
+ ├── apontamento (FK, 1:1) OU sublote_etapa (FK, 1:1) — sempre exatamente um dos dois:
+ │   apontamento = inspeção direto da máquina (fluxo original); sublote_etapa =
+ │   inspeção de uma etapa "inspecao" do roteiro pós-máquina. A tela e o fluxo de
+ │   inspeção em si são os mesmos (aprovada/reprovada/retrabalho + observação)
+ ├── quantidade_aprovada, quantidade_reprovada, quantidade_retrabalho
  ├── observação
  └── avaliador (FK operador, perfil qualidade)
+
+inspecoes_linha (checklist rápido do inspetor de linha sobre a máquina/OP em produção)
+ ├── OP (FK), máquina (FK, retrato), peça (FK, retrato), inspetor (FK operador, perfil qualidade)
+ ├── situacao_geral: ok | nao_ok | parada
+ ├── motivo (FK motivos_refugo, obrigatório se situacao_geral ≠ ok)
+ ├── turno: manha | tarde | noite (calculado sozinho pelo horário, não escolhido)
+ └── observação (opcional)
 ```
 
 ## 5. Regras de negócio (decisões já fechadas)
@@ -172,7 +186,19 @@ inspecoes_qualidade
 | 31 | Todo sublote nasce automaticamente quando um apontamento fecha na máquina (Stop ou Parada), com a quantidade boa daquele apontamento, já apontando pra 1ª etapa do roteiro da peça. Peça sem roteiro cadastrado: o sublote já nasce `concluida` e dá entrada automática no estoque de peças prontas (não tem pós-máquina pra fazer) |
 | 32 | A cor da etiqueta do sublote representa o status de qualidade: branca = em processo (antes da inspeção), verde = aprovado, rosa = reprovado, amarela = retrabalho — só muda depois que a inspeção de qualidade acontece |
 | 33 | Ficha da OP, pra imprimir em A4: página 1 (cabeçalho + roteiro + QR code que abre a OP no celular), página(s) "Acompanhamento de medição" (até 10 cotas por página, continua em outra página se tiver mais; linha Nominal/Mínima/Máxima por cota, linha Setup, 36 linhas numeradas, com Horário e Operador/Rubrica no fim de cada linha) e página do desenho técnico anexado (ou aviso de que não tem). Disponível em `/ordens/[numero]/ficha` assim que a OP é liberada |
-| 34 | `/op/[numero]` é a página da OP pro celular (aberta pelo QR da Ficha): mostra os sublotes da OP, identificados por operador + horário (igual a etiqueta escrita à mão). Por enquanto só leitura — os botões de Iniciar/Concluir etapa vêm na próxima parte |
+| 34 | `/op/[numero]` é a página da OP pro celular (aberta pelo QR da Ficha): mostra os sublotes da OP, identificados por operador + horário (igual a etiqueta escrita à mão), cada um com o botão certo pra etapa atual dele |
+| 35 | Etapa `manual`/`externo`: botão "Iniciar etapa" (escolhe operador) e depois "Concluir etapa" (escolhe operador, quantidade boa, quantidade refugo — refugo > 0 exige motivo). Ao concluir, o sublote avança sozinho pra próxima etapa do roteiro (ou vira `concluida` com entrada automática no estoque, se era a última) |
+| 36 | Etapa `maquina` (2ª operação): um único botão "Gerar OP de 2ª operação" — não tem Iniciar/Concluir separados. Ele cria a OP nova (`planejada`, na fila da máquina fixa da etapa, passando pela mesma preparação/liberação de sempre) e marca o sublote atual como `transferida`. Quando essa OP nova fechar seu apontamento, o sublote que nascer dela **continua o roteiro depois** daquela etapa "máquina", não do começo |
+| 37 | Etapa `inspecao`: não usa Iniciar/Concluir genérico — ao chegar nela, o sublote já aparece direto na lista de pendências da aba Qualidade (`/qualidade`, numa seção separada da de apontamento) e no celular mostra um link "Fazer inspeção de qualidade". A inspeção em si é a mesma tela/lógica que já existia (aprovada/reprovada/retrabalho + observação), só que ligada à etapa do sublote em vez de a um apontamento — **a aba Qualidade e o fluxo por apontamento continuam existindo exatamente como antes**, essa é só uma segunda porta de entrada pra mesma inspeção |
+| 38 | Na inspeção de uma etapa do roteiro: quantidade aprovada segue pro resto do roteiro normalmente; quantidade reprovada é perda (nem vira sublote novo); quantidade retrabalho vira um sublote novo, separado, com status `aguardando_decisao` — igual já valia pra qualidade por apontamento (regra 27), só que agora pode nascer também de uma etapa do roteiro |
+| 39 | Sublote com quantidade boa igual a zero numa etapa (concluiu tudo como refugo) simplesmente vira `concluida` sem gerar entrada no estoque — não trava nem gera erro |
+| 40 | Quantidade de peças é sempre número inteiro, sem vírgula (OP, apontamento, sublote, inspeção de qualidade, estoque de peças prontas) — validado no app e travado por `check` no banco. Exceção: quantidade importada da carteira de pedidos (`pedido_itens.quantidade`) continua podendo vir fracionada, porque é o que está na planilha do outro sistema (regra 15); quantidade de material (metros/folhas) também não entra nessa regra, por ser medida, não contagem de peça |
+| 41 | Não existe mais tela de "Apontamento" pra digitar o número da OP — no Painel (`/`), cada máquina com OP rodando/parada/em setup ou aberta aguardando mostra link(s) de ação: "Apontamento →" (operador e gestor) e/ou "Inspeção de linha →" (qualidade e gestor). Máquina livre não tem link nenhum (não tem OP esperando) |
+| 42 | Aba Qualidade tem filtro por máquina, peça (código/descrição), lote (número da OP) e data — vale pras duas listas (apontamento e etapa de sublote) ao mesmo tempo |
+| 43 | Inspeção de linha: o inspetor (perfil qualidade) clica na máquina no Painel → vê a OP em produção ali → registra a situação geral (OK/Não OK/Parada); se não for OK, escolhe o motivo (mesmo cadastro "Motivos de refugo"). Não precisa digitar nada, é tudo selecionável |
+| 44 | Fica "pendente" (mostrado na própria tela da máquina) quando já faz mais de 1h desde a última inspeção de linha *daquela máquina* (não da OP — se a OP mudar no meio do turno, o que conta é a máquina) |
+| 45 | Gestor também enxerga e pode usar a Inspeção de Linha (além do apontamento normal), pra acompanhar como o inspetor de linha está usando |
+| 46 | Exclusão de um registro de Inspeção de Linha (no histórico `/inspecao-linha`) é só gestor |
 
 ## 6. Fases de desenvolvimento
 
@@ -221,3 +247,7 @@ inspecoes_qualidade
 | 2026-11-25 | Pós-máquina, Parte 1 (migração 0011): cadastros `etapas`, `tratamentos`, `fornecedores`, `motivos_refugo`; `peca_roteiro_etapas` e `peca_plano_medicao_cotas` por peça; peça ganhou `desenho_path`/`desenho_content_type` (bucket Supabase Storage "desenhos"). Telas novas: Cadastros → Etapas/Postos, Tratamentos, Fornecedores, Motivos de refugo; aba Roteiro e Plano de medição no cadastro da peça, cada uma com botão "copiar de outra peça". Regras 25–30. |
 | 2026-11-25 | Pós-máquina, Parte 2 (migração 0012): tabelas `caixas` e `caixa_etapas`; `parar_producao`/`pausar_producao` passaram a criar o sublote automaticamente ao fechar o apontamento. Telas novas: Ficha da OP pra imprimir (`/ordens/[numero]/ficha`, com QR code via pacote `qrcode`) e página da OP no celular (`/op/[numero]`, só leitura). Regras 31–34. Partes seguintes (botões iniciar/concluir etapa, qualidade como etapa, juntar sublotes, quadro de lotes, tratamento externo, entrada automática no estoque ao concluir roteiro) ainda não foram feitas |
 | 2026-11-25 | Migração 0013: renomeado "caixa" para **sublote** em todo o banco (`caixas`→`sublotes`, `caixa_etapas`→`sublote_etapas`, função `criar_caixa_apos_apontamento`→`criar_sublote_apos_apontamento`) e no código — a peça circula em saquinho com etiqueta de papel, não em caixa |
+| 2026-11-25 | Pós-máquina, Parte 3 (migração 0014): funções `iniciar_etapa_sublote`/`concluir_etapa_sublote` (manual/externo) e motor único `avancar_sublote` (decide a próxima etapa ou a entrada automática no estoque); `sublotes.status` ganhou `transferida`; `ordens_producao` ganhou `op_origem_id`/`roteiro_etapa_origem_id` pra 2ª operação; `inspecoes_qualidade.apontamento_id` ficou opcional e ganhou `sublote_etapa_id` (exatamente um dos dois preenchido) — o módulo de Qualidade existente não foi alterado, só ganhou uma segunda lista de pendências e a função `concluir_inspecao_sublote`. Telas: botões no `/op/[numero]`, segunda tabela em `/qualidade`, formulário novo em `/qualidade/sublote/[subloteEtapaId]`. Regras 34 (atualizada) e 35–39 |
+| 2026-11-25 | Migração 0015: corrigido `criar_sublote_apos_apontamento` pra também nascer direto "em andamento" quando a 1ª etapa do roteiro (ou a 1ª depois de retomar numa OP de 2ª operação) já é do tipo inspeção — achado testando a Parte 3 de ponta a ponta |
+| 2026-11-25 | Migração 0016 + ajustes de UI: quantidade de peças passou a ser sempre inteira, em todo input e checado no banco (regra 40). Removida a tela "Apontamento" de digitar o número da OP — o Painel já linka direto pra cada máquina (regra 41). Aba Qualidade ganhou filtros de máquina/peça/lote/data (regra 42). Corrigido de passagem um bug achado no teste da Parte 3: `criarOPPlanejada` tentava gravar `pecas_maquinas` com a sessão do operador (RLS de gestor) ao gerar OP de 2ª operação pelo celular — agora isso é gravado no cadastro do roteiro (gestor) e a criação da OP em si usa client admin, já que quem aciona é o operador |
+| 2026-11-25 | Inspeção de Linha, 1ª versão (migrações 0017–0019): tabela `inspecoes_linha` (situação geral OK/Não OK/Parada + motivo se não for OK + turno calculado sozinho). Telas: `/inspecao-linha/[numero]` (checklist, acessado clicando na máquina no Painel) e `/inspecao-linha` (histórico, com filtro nenhum ainda). Painel ganhou os links "Apontamento →"/"Inspeção de linha →" por máquina (substituindo o cartão inteiro ser um único link), gestor vendo os dois pra acompanhar. Regras 43–46. O desenho inicial incluía um checklist cota a cota do plano de medição da peça, mas foi simplificado pra só situação geral + motivo (0018, depois de 0017 já ter sido aplicada na versão antiga, daí a 0018 corrigir em cima). A 0019 liberou gestor também gravar inspeção de linha (a RLS só deixava perfil qualidade) |

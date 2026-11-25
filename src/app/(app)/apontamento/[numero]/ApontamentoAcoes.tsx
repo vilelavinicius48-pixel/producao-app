@@ -143,7 +143,7 @@ export function ApontamentoAcoes({
               name="quantidade_produzida"
               type="number"
               min="0"
-              step="0.0001"
+              step="1"
               required
               autoFocus
               className="w-full rounded-xl border border-slate-300 px-4 py-4 text-xl focus:border-brand-500 focus:outline-none"
@@ -155,7 +155,7 @@ export function ApontamentoAcoes({
               name="quantidade_refugada"
               type="number"
               min="0"
-              step="0.0001"
+              step="1"
               required
               defaultValue={0}
               className="w-full rounded-xl border border-slate-300 px-4 py-4 text-xl focus:border-brand-500 focus:outline-none"

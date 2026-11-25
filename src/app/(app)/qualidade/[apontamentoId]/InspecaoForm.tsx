@@ -22,7 +22,7 @@ export function InspecaoForm({ apontamentoId, quantidadeProduzida }: { apontamen
             name="quantidade_aprovada"
             type="number"
             min="0"
-            step="0.0001"
+            step="1"
             required
             value={aprovada}
             onChange={(e) => setAprovada(e.target.value)}
@@ -35,7 +35,7 @@ export function InspecaoForm({ apontamentoId, quantidadeProduzida }: { apontamen
             name="quantidade_reprovada"
             type="number"
             min="0"
-            step="0.0001"
+            step="1"
             required
             value={reprovada}
             onChange={(e) => setReprovada(e.target.value)}
@@ -48,7 +48,7 @@ export function InspecaoForm({ apontamentoId, quantidadeProduzida }: { apontamen
             name="quantidade_retrabalho"
             type="number"
             min="0"
-            step="0.0001"
+            step="1"
             required
             value={retrabalho}
             onChange={(e) => setRetrabalho(e.target.value)}

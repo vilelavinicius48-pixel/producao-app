@@ -66,9 +66,29 @@ export async function calcularMaterialOP(
  */
 export async function criarOPPlanejada(
   supabase: Supabase,
-  args: { pecaId: string; maquinaId: string; quantidade: number; criadoPor: string; pedidoItemId?: string | null }
+  args: {
+    pecaId: string;
+    maquinaId: string;
+    quantidade: number;
+    criadoPor: string;
+    pedidoItemId?: string | null;
+    opOrigemId?: string | null;
+    roteiroEtapaOrigemId?: string | null;
+  }
 ): Promise<number> {
-  const { pecaId, maquinaId, quantidade, criadoPor, pedidoItemId = null } = args;
+  const {
+    pecaId,
+    maquinaId,
+    quantidade,
+    criadoPor,
+    pedidoItemId = null,
+    opOrigemId = null,
+    roteiroEtapaOrigemId = null,
+  } = args;
+
+  if (!Number.isInteger(quantidade) || quantidade <= 0) {
+    throw new Error("A quantidade da OP é em peças inteiras (sem vírgula)");
+  }
 
   const { data: peca, error: pecaError } = await supabase
     .from("pecas")
@@ -114,6 +134,8 @@ export async function criarOPPlanejada(
       status: "planejada",
       pedido_item_id: pedidoItemId,
       sequencia: (ultima?.sequencia ?? 0) + 1,
+      op_origem_id: opOrigemId,
+      roteiro_etapa_origem_id: roteiroEtapaOrigemId,
       ...material,
     })
     .select("numero")

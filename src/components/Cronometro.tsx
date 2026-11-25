@@ -12,9 +12,12 @@ function formatDuracao(ms: number) {
 
 export function Cronometro({ desde, className }: { desde: string; className?: string }) {
   const inicio = useState(() => new Date(desde).getTime())[0];
-  const [agora, setAgora] = useState(() => Date.now());
+  // Começa igual a "inicio" (00:00:00) pra bater com o HTML renderizado no servidor;
+  // só depois de montar no cliente é que pula pro tempo real decorrido.
+  const [agora, setAgora] = useState(() => inicio);
 
   useEffect(() => {
+    setAgora(Date.now());
     const id = setInterval(() => setAgora(Date.now()), 1000);
     return () => clearInterval(id);
   }, []);

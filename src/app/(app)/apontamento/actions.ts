@@ -9,6 +9,12 @@ function friendlyError(message: string): never {
   throw new Error(message.replace(/^.*ERROR:\s*/i, ""));
 }
 
+function validarQuantidadesInteiras(...valores: number[]) {
+  if (valores.some((v) => !Number.isInteger(v))) {
+    throw new Error("Quantidade de peças é sempre um número inteiro, sem vírgula");
+  }
+}
+
 export async function iniciarSetupAction(formData: FormData) {
   await requireOperador();
   const opId = String(formData.get("op_id"));
@@ -66,6 +72,7 @@ export async function pararProducaoAction(formData: FormData) {
   const numero = String(formData.get("numero"));
   const quantidadeProduzida = Number(formData.get("quantidade_produzida"));
   const quantidadeRefugada = Number(formData.get("quantidade_refugada"));
+  validarQuantidadesInteiras(quantidadeProduzida, quantidadeRefugada);
 
   const supabase = await createClient();
   const { error } = await supabase.rpc("parar_producao", {
@@ -85,6 +92,7 @@ export async function pausarProducaoAction(formData: FormData) {
   const numero = String(formData.get("numero"));
   const quantidadeProduzida = Number(formData.get("quantidade_produzida"));
   const quantidadeRefugada = Number(formData.get("quantidade_refugada"));
+  validarQuantidadesInteiras(quantidadeProduzida, quantidadeRefugada);
 
   const supabase = await createClient();
   const { error } = await supabase.rpc("pausar_producao", {

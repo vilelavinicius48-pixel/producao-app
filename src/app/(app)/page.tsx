@@ -1,10 +1,41 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { getOperadorAtual } from "@/lib/auth";
 import { Cronometro } from "@/components/Cronometro";
 import { DashboardRealtime } from "./DashboardRealtime";
 
+function AcoesMaquina({
+  numero,
+  mostrarApontamento,
+  mostrarInspecaoLinha,
+}: {
+  numero: number;
+  mostrarApontamento: boolean;
+  mostrarInspecaoLinha: boolean;
+}) {
+  return (
+    <div className="mt-4 flex flex-wrap gap-3 text-sm font-semibold">
+      {mostrarApontamento && (
+        <Link href={`/apontamento/${numero}`} className="text-brand-600 hover:underline">
+          Apontamento →
+        </Link>
+      )}
+      {mostrarInspecaoLinha && (
+        <Link href={`/inspecao-linha/${numero}`} className="text-indigo-600 hover:underline">
+          Inspeção de linha →
+        </Link>
+      )}
+    </div>
+  );
+}
+
 export default async function DashboardPage() {
   const supabase = await createClient();
+  const operador = await getOperadorAtual();
+  // Apontamento é de quem opera a máquina (gestor cobre ausência); inspeção de
+  // linha é do perfil qualidade — gestor também vê pra acompanhar como funciona.
+  const mostrarApontamento = operador?.perfil !== "qualidade";
+  const mostrarInspecaoLinha = operador?.perfil === "qualidade" || operador?.perfil === "gestor";
 
   const [
     { data: maquinas },
@@ -77,11 +108,7 @@ export default async function DashboardPage() {
             const peca = opAberta.pecas as unknown as { codigo: string; descricao: string } | null;
             const produzido = produzidoPorOp.get(opAberta.id) ?? 0;
             return (
-              <Link
-                key={m.id}
-                href={`/apontamento/${opAberta.numero}`}
-                className="block rounded-2xl border-2 border-amber-400 bg-amber-50 p-5 transition hover:shadow-md active:scale-[0.98] sm:p-6"
-              >
+              <div key={m.id} className="rounded-2xl border-2 border-amber-400 bg-amber-50 p-5 sm:p-6">
                 <p className="text-lg font-bold text-slate-900 sm:text-xl">
                   {m.codigo} — {m.nome}
                 </p>
@@ -94,7 +121,12 @@ export default async function DashboardPage() {
                 <p className="text-sm text-slate-600">
                   Produzido: {produzido} / {opAberta.quantidade_planejada}
                 </p>
-              </Link>
+                <AcoesMaquina
+                  numero={opAberta.numero}
+                  mostrarApontamento={mostrarApontamento}
+                  mostrarInspecaoLinha={mostrarInspecaoLinha}
+                />
+              </div>
             );
           }
 
@@ -105,11 +137,7 @@ export default async function DashboardPage() {
             const setup = setupPorOp.get(op.id);
             const operadorSetup = setup?.operadores as unknown as { nome: string } | null;
             return (
-              <Link
-                key={m.id}
-                href={`/apontamento/${op.numero}`}
-                className="block rounded-2xl border-2 border-sky-500 bg-sky-50 p-5 transition hover:shadow-md active:scale-[0.98] sm:p-6"
-              >
+              <div key={m.id} className="rounded-2xl border-2 border-sky-500 bg-sky-50 p-5 sm:p-6">
                 <p className="text-lg font-bold text-slate-900 sm:text-xl">
                   {m.codigo} — {m.nome}
                 </p>
@@ -126,7 +154,12 @@ export default async function DashboardPage() {
                     />
                   </div>
                 )}
-              </Link>
+                <AcoesMaquina
+                  numero={op.numero}
+                  mostrarApontamento={mostrarApontamento}
+                  mostrarInspecaoLinha={mostrarInspecaoLinha}
+                />
+              </div>
             );
           }
 
@@ -137,10 +170,9 @@ export default async function DashboardPage() {
           const produzido = produzidoPorOp.get(op.id) ?? 0;
 
           return (
-            <Link
+            <div
               key={m.id}
-              href={`/apontamento/${op.numero}`}
-              className={`block rounded-2xl border-2 p-5 transition hover:shadow-md active:scale-[0.98] sm:p-6 ${
+              className={`rounded-2xl border-2 p-5 sm:p-6 ${
                 emProducao ? "border-green-500 bg-green-50" : "border-red-500 bg-red-50"
               }`}
             >
@@ -179,7 +211,13 @@ export default async function DashboardPage() {
                   />
                 </div>
               ) : null}
-            </Link>
+
+              <AcoesMaquina
+                numero={op.numero}
+                mostrarApontamento={mostrarApontamento}
+                mostrarInspecaoLinha={mostrarInspecaoLinha}
+              />
+            </div>
           );
         })}
         {maquinas?.length === 0 && <p className="text-slate-500">Nenhuma máquina cadastrada</p>}

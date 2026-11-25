@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { criarOPDoPedido } from "../actions";
-import { formatData, formatQtd } from "@/lib/pcp/carteira";
+import { formatData, formatQtd, formatQtdPecas } from "@/lib/pcp/carteira";
 import { formatHoras } from "@/lib/tempo";
 
 export default async function NovaOPDoPedidoPage({
@@ -41,7 +41,7 @@ export default async function NovaOPDoPedidoPage({
 
   const qtdEmOP = (opsItem ?? []).reduce((s, o) => s + Number(o.quantidade_planejada), 0);
   const saldoEstoque = Math.max(Number(estoque?.saldo ?? 0), 0);
-  const sugerida = Math.max(Number(item.quantidade) - qtdEmOP - saldoEstoque, 0) || Number(item.quantidade);
+  const sugerida = Math.ceil(Math.max(Number(item.quantidade) - qtdEmOP - saldoEstoque, 0) || Number(item.quantidade));
 
   const compativeis = new Set((peca?.pecas_maquinas ?? []).map((pm) => pm.maquina_id));
   const opcoes = compativeis.size > 0 ? (maquinas ?? []).filter((m) => compativeis.has(m.id)) : (maquinas ?? []);
@@ -76,11 +76,11 @@ export default async function NovaOPDoPedidoPage({
           </div>
           <div>
             <p className="text-xs text-slate-500">Já em OP</p>
-            <p className="font-semibold">{formatQtd(qtdEmOP)}</p>
+            <p className="font-semibold">{formatQtdPecas(qtdEmOP)}</p>
           </div>
           <div>
             <p className="text-xs text-slate-500">Estoque da peça</p>
-            <p className="font-semibold">{formatQtd(saldoEstoque)}</p>
+            <p className="font-semibold">{formatQtdPecas(saldoEstoque)}</p>
           </div>
         </div>
       </div>
@@ -94,8 +94,8 @@ export default async function NovaOPDoPedidoPage({
           <input
             name="quantidade"
             type="number"
-            min="0.0001"
-            step="any"
+            min="1"
+            step="1"
             required
             defaultValue={sugerida}
             className="w-40 rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none"
