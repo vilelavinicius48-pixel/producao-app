@@ -36,6 +36,66 @@ export type Peca = {
   material_id: string | null;
   comprimento_consumido_mm: number | null;
   pecas_por_folha: number | null;
+  desenho_path: string | null;
+  desenho_content_type: string | null;
+};
+
+/** Tipo da etapa: manual = posto físico; maquina = gera OP de 2ª operação; externo = tratamento
+ *  com fornecedor; inspecao = usa o módulo de qualidade já existente. */
+export type TipoEtapa = "manual" | "maquina" | "externo" | "inspecao";
+
+export type Etapa = {
+  id: string;
+  nome: string;
+  tipo: TipoEtapa;
+  ativo: boolean;
+  created_at: string;
+};
+
+export type Tratamento = {
+  id: string;
+  nome: string;
+  ativo: boolean;
+  created_at: string;
+};
+
+export type Fornecedor = {
+  id: string;
+  nome: string;
+  contato: string | null;
+  ativo: boolean;
+  created_at: string;
+};
+
+export type MotivoRefugo = {
+  id: string;
+  descricao: string;
+  ativo: boolean;
+  created_at: string;
+};
+
+export type PecaRoteiroEtapa = {
+  id: string;
+  peca_id: string;
+  etapa_id: string;
+  ordem: number;
+  maquina_id: string | null;
+  tratamento_id: string | null;
+  created_at: string;
+};
+
+export type PecaPlanoMedicaoCota = {
+  id: string;
+  peca_id: string;
+  ordem: number;
+  tipo: string;
+  eh_atributo: boolean;
+  nominal: number | null;
+  minimo: number | null;
+  maximo: number | null;
+  instrumento: string | null;
+  frequencia: string | null;
+  created_at: string;
 };
 
 /** Formato do material: decide o que medida_a/medida_b/espessura significam. Ver lib/pcp/material.ts. */
@@ -239,6 +299,79 @@ export type Database = {
         Insert: Partial<MotivoParada> & Pick<MotivoParada, "descricao">;
         Update: Partial<MotivoParada>;
         Relationships: [];
+      };
+      etapas: {
+        Row: Etapa;
+        Insert: Partial<Etapa> & Pick<Etapa, "nome" | "tipo">;
+        Update: Partial<Etapa>;
+        Relationships: [];
+      };
+      tratamentos: {
+        Row: Tratamento;
+        Insert: Partial<Tratamento> & Pick<Tratamento, "nome">;
+        Update: Partial<Tratamento>;
+        Relationships: [];
+      };
+      fornecedores: {
+        Row: Fornecedor;
+        Insert: Partial<Fornecedor> & Pick<Fornecedor, "nome">;
+        Update: Partial<Fornecedor>;
+        Relationships: [];
+      };
+      motivos_refugo: {
+        Row: MotivoRefugo;
+        Insert: Partial<MotivoRefugo> & Pick<MotivoRefugo, "descricao">;
+        Update: Partial<MotivoRefugo>;
+        Relationships: [];
+      };
+      peca_roteiro_etapas: {
+        Row: PecaRoteiroEtapa;
+        Insert: Partial<PecaRoteiroEtapa> & Pick<PecaRoteiroEtapa, "peca_id" | "etapa_id" | "ordem">;
+        Update: Partial<PecaRoteiroEtapa>;
+        Relationships: [
+          {
+            foreignKeyName: "peca_roteiro_etapas_peca_id_fkey";
+            columns: ["peca_id"];
+            isOneToOne: false;
+            referencedRelation: "pecas";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "peca_roteiro_etapas_etapa_id_fkey";
+            columns: ["etapa_id"];
+            isOneToOne: false;
+            referencedRelation: "etapas";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "peca_roteiro_etapas_maquina_id_fkey";
+            columns: ["maquina_id"];
+            isOneToOne: false;
+            referencedRelation: "maquinas";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "peca_roteiro_etapas_tratamento_id_fkey";
+            columns: ["tratamento_id"];
+            isOneToOne: false;
+            referencedRelation: "tratamentos";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      peca_plano_medicao_cotas: {
+        Row: PecaPlanoMedicaoCota;
+        Insert: Partial<PecaPlanoMedicaoCota> & Pick<PecaPlanoMedicaoCota, "peca_id" | "ordem" | "tipo">;
+        Update: Partial<PecaPlanoMedicaoCota>;
+        Relationships: [
+          {
+            foreignKeyName: "peca_plano_medicao_cotas_peca_id_fkey";
+            columns: ["peca_id"];
+            isOneToOne: false;
+            referencedRelation: "pecas";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       pecas: {
         Row: Peca;

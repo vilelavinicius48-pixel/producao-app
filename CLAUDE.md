@@ -38,6 +38,7 @@ Porte do projeto: pequeno, mas com complexidade real de regras de negócio e con
 9. **Relatório diário** — planejado x realizado x parado, por máquina
 10. **PCP** (`/pcp`, só gestor) — carteira de pedidos importada da planilha do sistema, geração de OP a partir do pedido, preparação (material/ferramenta/dispositivo/programa), fila por máquina, pendências e estoque de peças prontas
 11. **Material do PCP** — catálogo de materiais (barra ou chapa), estoque de material em metros/folhas, necessidade de material (o que falta comprar) e pedidos de compra com previsão de chegada; o status "Material" da OP passa a ser calculado sozinho
+12. **Pós-máquina** (em construção, por partes) — depois que a peça sai da máquina, segue sozinha um roteiro de etapas (rebarbação, lavagem, inspeção, tratamento externo, 2ª operação em máquina, etc.) até virar peça pronta, em vez do gestor decidir uma a uma. Parte 1 (pronta): cadastro de etapas/postos, tratamentos, fornecedores e motivos de refugo; roteiro e plano de medição por peça. Partes seguintes (ainda não feitas): caixa (sublote) gerada ao fechar o apontamento na máquina, Ficha da OP impressa com QR code, página do celular pra tocar o roteiro, quadro "onde está cada lote", tratamento externo (envio/retorno) e entrada automática no estoque ao concluir
 
 ## 4. Modelo de dados (entidades e relacionamentos)
 
@@ -69,6 +70,27 @@ pedidos_compra_material
 operadores
  ├── matrícula, nome, ativo
  └── perfil (operador / gestor / qualidade)
+
+etapas (catálogo)
+ ├── nome, tipo: manual | maquina | externo | inspecao
+ └── manual = posto físico · maquina = gera OP de 2ª operação · externo = tratamento com
+     fornecedor · inspecao = usa o módulo de Qualidade
+
+tratamentos, fornecedores, motivos_refugo (catálogos simples)
+
+peca_roteiro_etapas (roteiro da peça, ordenado)
+ ├── peça (FK), etapa (FK), ordem
+ ├── máquina (FK, obrigatório se etapa.tipo = 'maquina')
+ └── tratamento (FK, obrigatório se etapa.tipo = 'externo')
+
+peca_plano_medicao_cotas (plano de medição da peça, ordenado)
+ ├── peça (FK), ordem, tipo (Comp/Ø/raio/ângulo/rosca/funcional/...)
+ ├── eh_atributo (true = cota tipo OK/NOK, sem nominal/mín/máx)
+ ├── nominal, mínimo, máximo (quando não é atributo)
+ └── instrumento, frequência (opcionais)
+
+pecas ganha: desenho_path + desenho_content_type (arquivo no bucket "desenhos" do Supabase
+Storage, PNG/JPG/PDF, um arquivo atual por peça, substituível)
 
 motivos_parada
  └── descrição (cadastrável)
@@ -127,6 +149,12 @@ inspecoes_qualidade
 | 22 | Status "Material" da OP é calculado automaticamente (OK / Aguardando / Pendente) a partir do estoque de material e dos pedidos de compra em aberto. Quando o estoque não cobre todas as OPs do mesmo material, prioridade é **entrega mais cedo primeiro** (vale também entre OPs de máquinas diferentes); a ordem da fila da máquina só desempata quando a entrega é igual ou inexistente. O gestor pode sobrescrever manualmente a qualquer momento — isso trava o recálculo automático dessa OP até clicar em "Recalcular material automático" |
 | 23 | Pedido de compra de material: material, quantidade, fornecedor (texto livre), data do pedido e previsão de chegada (editável depois — o fornecedor costuma informar só após o pedido feito). Ao marcar "recebido", lança a entrada no estoque (quantidade recebida pode ser menor que a pedida, para entrega parcial) |
 | 24 | Tela "Necessidade de material": para cada material, soma os metros/folhas de todas as OPs `planejada`/`aberta`, desconta estoque e pedidos de compra em aberto, mostra o que falta comprar e tem botão para copiar a lista em texto (para colar no WhatsApp) |
+| 25 | Pós-máquina: a peça que sai da máquina segue sozinha o roteiro cadastrado dela (lista ordenada de etapas), em vez do gestor decidir manualmente o que fazer com cada lote |
+| 26 | Etapa do tipo `maquina` (2ª operação) no roteiro já define a máquina fixa daquela etapa — não é escolhida na hora que a peça chega lá |
+| 27 | Quando a inspeção de qualidade classifica como "retrabalho", a caixa fica numa lista separada aguardando decisão manual do gestor — não volta sozinha para nenhuma etapa do roteiro |
+| 28 | No celular (abrindo pelo QR code da Ficha da OP), cada operador faz login com a própria matrícula, igual no resto do sistema — sem acesso sem login |
+| 29 | Refugo registrado em qualquer etapa do roteiro que não seja a inspeção de qualidade pede o motivo (cadastro "Motivos de refugo"), igual já acontece hoje com parada de máquina |
+| 30 | Peça sem roteiro pós-máquina cadastrado, ou sem plano de medição cadastrado, aparece como pendência de cadastro (igual já acontece com tempo padrão/máquina/material) |
 
 ## 6. Fases de desenvolvimento
 
@@ -172,3 +200,4 @@ inspecoes_qualidade
 | 2026-11-24 | Módulo PCP (migração 0009): `pedido_itens`, `importacoes_pedidos`, `estoque_movimentos` + view `estoque_pecas`; OP ganhou `planejada`, preparo, `sequencia`, `pedido_item_id`; tempo padrão da peça passou a ser opcional; 12 máquinas cadastradas. Regras 13–18 |
 | 2026-11-24 | Módulo de Material do PCP (migração 0010): catálogo `materiais` (barra/chapa), `estoque_material_movimentos` + view `estoque_materiais`, `pedidos_compra_material`; máquina ganhou tamanho de barra + sobra de ponta; peça ganhou material + comprimento consumido/peças por folha; OP ganhou retrato de material (barras/folhas/metros) + `material_status_manual`. Status "Material" da OP passou a ser calculado automaticamente. Telas novas: Cadastros → Materiais, PCP → Necessidade de material, PCP → Compras de material, Cadastros → Materiais → Importar estoque inicial. Regras 19–24 |
 | 2026-11-24 | Importado o estoque inicial real de matéria-prima pela planilha "Controle de Matéria Prima" (322 materiais, ~156 lançamentos de estoque); 9 itens da planilha não se encaixam no modelo atual (perfil, cantoneira, disco, item avulso) e ficaram para cadastro manual, se forem matéria-prima de verdade |
+| 2026-11-25 | Pós-máquina, Parte 1 (migração 0011): cadastros `etapas`, `tratamentos`, `fornecedores`, `motivos_refugo`; `peca_roteiro_etapas` e `peca_plano_medicao_cotas` por peça; peça ganhou `desenho_path`/`desenho_content_type` (bucket Supabase Storage "desenhos"). Telas novas: Cadastros → Etapas/Postos, Tratamentos, Fornecedores, Motivos de refugo; aba Roteiro e Plano de medição no cadastro da peça, cada uma com botão "copiar de outra peça". Regras 25–30. Partes seguintes (caixa, Ficha da OP com QR, página do celular, quadro de lotes, tratamento externo, entrada automática no estoque) ainda não foram feitas |

@@ -18,6 +18,10 @@ const NAV_ITEMS: { href: string; label: string; perfis: Perfil[] }[] = [
   { href: "/cadastros/materiais", label: "Materiais", perfis: ["gestor"] },
   { href: "/cadastros/maquinas", label: "Máquinas", perfis: ["gestor"] },
   { href: "/cadastros/motivos-parada", label: "Motivos de parada", perfis: ["gestor"] },
+  { href: "/cadastros/etapas", label: "Etapas / Postos", perfis: ["gestor"] },
+  { href: "/cadastros/tratamentos", label: "Tratamentos externos", perfis: ["gestor"] },
+  { href: "/cadastros/fornecedores", label: "Fornecedores", perfis: ["gestor"] },
+  { href: "/cadastros/motivos-refugo", label: "Motivos de refugo", perfis: ["gestor"] },
   { href: "/cadastros/operadores", label: "Usuários", perfis: ["gestor"] },
 ];
 

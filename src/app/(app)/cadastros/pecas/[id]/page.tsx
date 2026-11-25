@@ -4,6 +4,8 @@ import { formatSegundos } from "@/lib/tempo";
 import { TimeInput } from "@/components/TimeInput";
 import { updatePeca } from "../actions";
 import { MaterialPecaForm } from "./MaterialPecaForm";
+import { RoteiroPecaForm } from "./RoteiroPecaForm";
+import { PlanoMedicaoPecaForm } from "./PlanoMedicaoPecaForm";
 
 export default async function PecaDetalhePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -12,19 +14,53 @@ export default async function PecaDetalhePage({ params }: { params: Promise<{ id
   const { data: peca } = await supabase.from("pecas").select("*").eq("id", id).single();
   if (!peca) notFound();
 
-  const [{ data: compativeis }, { data: materiais }, { data: maquinas }, { data: materiaisAtivos }] = await Promise.all([
+  const [
+    { data: compativeis },
+    { data: materiais },
+    { data: maquinas },
+    { data: materiaisAtivos },
+    { data: roteiro },
+    { data: cotas },
+    { data: etapasAtivas },
+    { data: tratamentosAtivos },
+    { data: outrasPecas },
+  ] = await Promise.all([
     supabase.from("pecas_maquinas").select("maquina_id").eq("peca_id", id),
     supabase.from("peca_materiais").select("*").eq("peca_id", id),
     supabase.from("maquinas").select("id, codigo, nome, barra_comprimento_mm, barra_sobra_mm").eq("ativo", true).order("codigo"),
     supabase.from("materiais").select("id, formato, tipo, medida_a_mm, medida_b_mm, espessura_mm").eq("ativo", true).order("tipo"),
+    supabase
+      .from("peca_roteiro_etapas")
+      .select("id, ordem, etapa:etapas(nome, tipo), maquina:maquinas(nome), tratamento:tratamentos(nome)")
+      .eq("peca_id", id)
+      .order("ordem")
+      .overrideTypes<
+        {
+          id: string;
+          ordem: number;
+          etapa: { nome: string; tipo: import("@/types/database").TipoEtapa } | null;
+          maquina: { nome: string } | null;
+          tratamento: { nome: string } | null;
+        }[],
+        { merge: false }
+      >(),
+    supabase.from("peca_plano_medicao_cotas").select("*").eq("peca_id", id).order("ordem"),
+    supabase.from("etapas").select("id, nome, tipo").eq("ativo", true).order("nome"),
+    supabase.from("tratamentos").select("id, nome").eq("ativo", true).order("nome"),
+    supabase.from("pecas").select("id, codigo, descricao").neq("id", id).order("codigo"),
   ]);
 
   const compativeisIds = new Set((compativeis ?? []).map((c) => c.maquina_id));
   const maquinasCompativeis = (maquinas ?? []).filter((m) => compativeisIds.has(m.id));
+  const desenhoUrl = peca.desenho_path
+    ? supabase.storage.from("desenhos").getPublicUrl(peca.desenho_path).data.publicUrl
+    : null;
   const pendencias = [
     peca.tempo_padrao_segundos === null && "tempo padrão",
     compativeisIds.size === 0 && "máquinas compatíveis",
     peca.material_id === null && "material",
+    (roteiro ?? []).length === 0 && "roteiro pós-máquina",
+    (cotas ?? []).length === 0 && "plano de medição",
   ].filter(Boolean) as string[];
 
   return (
@@ -110,6 +146,29 @@ export default async function PecaDetalhePage({ params }: { params: Promise<{ id
           ))}
           {materiais?.length === 0 && <li className="text-slate-500">Nenhum material cadastrado</li>}
         </ul>
+      </div>
+
+      <div className="mt-6 rounded-xl border border-slate-200 bg-white p-4">
+        <h2 className="mb-1 text-sm font-semibold text-slate-900">Roteiro pós-máquina</h2>
+        <p className="mb-3 text-xs text-slate-500">
+          Etapas pelas quais a peça passa depois de sair da máquina, na ordem em que acontecem.
+        </p>
+        <RoteiroPecaForm
+          pecaId={peca.id}
+          roteiro={roteiro ?? []}
+          etapas={etapasAtivas ?? []}
+          maquinas={(maquinas ?? []).map((m) => ({ id: m.id, nome: m.nome }))}
+          tratamentos={tratamentosAtivos ?? []}
+          outrasPecas={outrasPecas ?? []}
+        />
+      </div>
+
+      <div className="mt-6 rounded-xl border border-slate-200 bg-white p-4">
+        <h2 className="mb-1 text-sm font-semibold text-slate-900">Plano de medição</h2>
+        <p className="mb-3 text-xs text-slate-500">
+          Cotas que precisam ser inspecionadas, com o desenho técnico da peça anexado.
+        </p>
+        <PlanoMedicaoPecaForm pecaId={peca.id} cotas={cotas ?? []} outrasPecas={outrasPecas ?? []} desenhoUrl={desenhoUrl} />
       </div>
     </div>
   );

@@ -39,11 +39,17 @@ export default async function PendenciasPage() {
     pecaIds.length > 0
       ? await supabase
           .from("pecas")
-          .select("id, codigo, descricao, tempo_padrao_segundos, pecas_maquinas(maquina_id)")
+          .select(
+            "id, codigo, descricao, tempo_padrao_segundos, pecas_maquinas(maquina_id), peca_roteiro_etapas(id), peca_plano_medicao_cotas(id)"
+          )
           .in("id", pecaIds.slice(0, 500))
       : { data: [] };
   const pecasPendentes = (pecas ?? []).filter(
-    (p) => p.tempo_padrao_segundos === null || (p.pecas_maquinas as unknown[]).length === 0
+    (p) =>
+      p.tempo_padrao_segundos === null ||
+      (p.pecas_maquinas as unknown[]).length === 0 ||
+      (p.peca_roteiro_etapas as unknown[]).length === 0 ||
+      (p.peca_plano_medicao_cotas as unknown[]).length === 0
   );
 
   const grupos = PREPARO_ITENS.map((item) => ({
@@ -133,7 +139,7 @@ export default async function PendenciasPage() {
           </span>
         </header>
         {pecasPendentes.length === 0 ? (
-          <p className="px-4 py-4 text-sm text-slate-500">Todas com tempo e máquina cadastrados.</p>
+          <p className="px-4 py-4 text-sm text-slate-500">Todas com cadastro completo.</p>
         ) : (
           <ul className="grid grid-cols-1 divide-y divide-slate-100 sm:grid-cols-2 sm:divide-y-0">
             {pecasPendentes.map((p) => (
@@ -147,9 +153,11 @@ export default async function PendenciasPage() {
                   {[
                     p.tempo_padrao_segundos === null && "tempo",
                     (p.pecas_maquinas as unknown[]).length === 0 && "máquina",
+                    (p.peca_roteiro_etapas as unknown[]).length === 0 && "roteiro",
+                    (p.peca_plano_medicao_cotas as unknown[]).length === 0 && "plano de medição",
                   ]
                     .filter(Boolean)
-                    .join(" e ")}
+                    .join(", ")}
                 </span>
               </li>
             ))}
