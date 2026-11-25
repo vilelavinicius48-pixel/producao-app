@@ -84,10 +84,10 @@ export type PecaRoteiroEtapa = {
   created_at: string;
 };
 
-export type StatusCaixa = "aguardando_etapa" | "em_etapa" | "aguardando_decisao" | "concluida" | "mesclada";
-export type QualidadeStatusCaixa = "em_processo" | "aprovado" | "reprovado" | "retrabalho";
+export type StatusSublote = "aguardando_etapa" | "em_etapa" | "aguardando_decisao" | "concluida" | "mesclada";
+export type QualidadeStatusSublote = "em_processo" | "aprovado" | "reprovado" | "retrabalho";
 
-export type Caixa = {
+export type Sublote = {
   id: string;
   op_id: string;
   apontamento_id: string | null;
@@ -98,20 +98,20 @@ export type Caixa = {
   operador_id: string;
   horario: string;
   roteiro_atual_id: string | null;
-  status: StatusCaixa;
-  qualidade_status: QualidadeStatusCaixa;
+  status: StatusSublote;
+  qualidade_status: QualidadeStatusSublote;
   mesclada_em_id: string | null;
   created_at: string;
 };
 
-export type StatusCaixaEtapa = "aguardando" | "em_andamento" | "concluida";
+export type StatusSubloteEtapa = "aguardando" | "em_andamento" | "concluida";
 
-export type CaixaEtapa = {
+export type SubloteEtapa = {
   id: string;
-  caixa_id: string;
+  sublote_id: string;
   peca_roteiro_etapa_id: string | null;
   etapa_id: string;
-  status: StatusCaixaEtapa;
+  status: StatusSubloteEtapa;
   operador_inicio_id: string | null;
   timestamp_inicio: string | null;
   operador_fim_id: string | null;
@@ -412,34 +412,34 @@ export type Database = {
           },
         ];
       };
-      caixas: {
-        Row: Caixa;
-        Insert: Partial<Caixa> & Pick<Caixa, "op_id" | "peca_id" | "maquina_id" | "quantidade" | "quantidade_original" | "operador_id" | "horario">;
-        Update: Partial<Caixa>;
+      sublotes: {
+        Row: Sublote;
+        Insert: Partial<Sublote> & Pick<Sublote, "op_id" | "peca_id" | "maquina_id" | "quantidade" | "quantidade_original" | "operador_id" | "horario">;
+        Update: Partial<Sublote>;
         Relationships: [
           {
-            foreignKeyName: "caixas_op_id_fkey";
+            foreignKeyName: "sublotes_op_id_fkey";
             columns: ["op_id"];
             isOneToOne: false;
             referencedRelation: "ordens_producao";
             referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "caixas_peca_id_fkey";
+            foreignKeyName: "sublotes_peca_id_fkey";
             columns: ["peca_id"];
             isOneToOne: false;
             referencedRelation: "pecas";
             referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "caixas_maquina_id_fkey";
+            foreignKeyName: "sublotes_maquina_id_fkey";
             columns: ["maquina_id"];
             isOneToOne: false;
             referencedRelation: "maquinas";
             referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "caixas_roteiro_atual_id_fkey";
+            foreignKeyName: "sublotes_roteiro_atual_id_fkey";
             columns: ["roteiro_atual_id"];
             isOneToOne: false;
             referencedRelation: "peca_roteiro_etapas";
@@ -447,20 +447,20 @@ export type Database = {
           },
         ];
       };
-      caixa_etapas: {
-        Row: CaixaEtapa;
-        Insert: Partial<CaixaEtapa> & Pick<CaixaEtapa, "caixa_id" | "etapa_id">;
-        Update: Partial<CaixaEtapa>;
+      sublote_etapas: {
+        Row: SubloteEtapa;
+        Insert: Partial<SubloteEtapa> & Pick<SubloteEtapa, "sublote_id" | "etapa_id">;
+        Update: Partial<SubloteEtapa>;
         Relationships: [
           {
-            foreignKeyName: "caixa_etapas_caixa_id_fkey";
-            columns: ["caixa_id"];
+            foreignKeyName: "sublote_etapas_sublote_id_fkey";
+            columns: ["sublote_id"];
             isOneToOne: false;
-            referencedRelation: "caixas";
+            referencedRelation: "sublotes";
             referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "caixa_etapas_etapa_id_fkey";
+            foreignKeyName: "sublote_etapas_etapa_id_fkey";
             columns: ["etapa_id"];
             isOneToOne: false;
             referencedRelation: "etapas";

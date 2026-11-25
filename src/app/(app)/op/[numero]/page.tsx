@@ -4,12 +4,12 @@ import { requireOperador } from "@/lib/auth";
 import { formatData, formatQtd } from "@/lib/pcp/carteira";
 import { STATUS_BADGE_CLASS, STATUS_LABEL } from "@/lib/op-status";
 
-const CAIXA_STATUS_LABEL: Record<string, string> = {
+const SUBLOTE_STATUS_LABEL: Record<string, string> = {
   aguardando_etapa: "Aguardando etapa",
   em_etapa: "Em andamento",
   aguardando_decisao: "Aguardando decisão",
   concluida: "Concluída",
-  mesclada: "Mesclada em outra caixa",
+  mesclada: "Mesclado em outro sublote",
 };
 
 const QUALIDADE_CLASS: Record<string, string> = {
@@ -35,8 +35,8 @@ export default async function OPCelularPage({ params }: { params: Promise<{ nume
   const maquina = op.maquinas as unknown as { nome: string } | null;
   const pedido = op.pedido_itens as unknown as { cliente: string; data_entrega: string } | null;
 
-  const { data: caixas } = await supabase
-    .from("caixas")
+  const { data: sublotes } = await supabase
+    .from("sublotes")
     .select(
       "id, quantidade, horario, status, qualidade_status, operadores(nome), roteiro_atual:peca_roteiro_etapas(etapa:etapas(nome))"
     )
@@ -66,33 +66,33 @@ export default async function OPCelularPage({ params }: { params: Promise<{ nume
         </p>
       </div>
 
-      <h2 className="mt-6 text-lg font-semibold text-slate-900">Caixas</h2>
+      <h2 className="mt-6 text-lg font-semibold text-slate-900">Sublotes</h2>
       <div className="mt-3 space-y-3">
-        {(caixas ?? []).map((c) => {
-          const operador = c.operadores as unknown as { nome: string } | null;
-          const roteiroAtual = c.roteiro_atual as unknown as { etapa: { nome: string } | null } | null;
-          const dataHora = new Date(c.horario);
+        {(sublotes ?? []).map((s) => {
+          const operador = s.operadores as unknown as { nome: string } | null;
+          const roteiroAtual = s.roteiro_atual as unknown as { etapa: { nome: string } | null } | null;
+          const dataHora = new Date(s.horario);
           return (
-            <div key={c.id} className={`rounded-xl border-2 bg-white p-4 ${QUALIDADE_CLASS[c.qualidade_status]}`}>
+            <div key={s.id} className={`rounded-xl border-2 bg-white p-4 ${QUALIDADE_CLASS[s.qualidade_status]}`}>
               <div className="flex items-center justify-between">
                 <p className="text-base font-semibold text-slate-900">{operador?.nome ?? "-"}</p>
                 <span className="text-sm text-slate-600">
                   {dataHora.toLocaleDateString("pt-BR")} {dataHora.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
                 </span>
               </div>
-              <p className="mt-1 text-2xl font-bold text-slate-900">{formatQtd(Number(c.quantidade))} pç</p>
+              <p className="mt-1 text-2xl font-bold text-slate-900">{formatQtd(Number(s.quantidade))} pç</p>
               <p className="mt-1 text-sm text-slate-700">
-                {CAIXA_STATUS_LABEL[c.status] ?? c.status}
-                {c.status !== "concluida" && c.status !== "mesclada" && roteiroAtual?.etapa && (
+                {SUBLOTE_STATUS_LABEL[s.status] ?? s.status}
+                {s.status !== "concluida" && s.status !== "mesclada" && roteiroAtual?.etapa && (
                   <> · próxima etapa: {roteiroAtual.etapa.nome}</>
                 )}
               </p>
             </div>
           );
         })}
-        {(caixas ?? []).length === 0 && (
+        {(sublotes ?? []).length === 0 && (
           <p className="rounded-xl border border-dashed border-slate-300 px-4 py-6 text-center text-sm text-slate-500">
-            Nenhuma caixa ainda. Ela aparece aqui sozinha quando um apontamento fecha nessa OP.
+            Nenhum sublote ainda. Ele aparece aqui sozinho quando um apontamento fecha nessa OP.
           </p>
         )}
       </div>
