@@ -45,8 +45,10 @@ Porte do projeto: pequeno, mas com complexidade real de regras de negócio e con
 
 ```
 pecas
- ├── código, descrição, tempo_padrao_por_unidade
- ├── maquinas_compativeis (N:N com maquinas)
+ ├── código, descrição, tempo_padrao_por_unidade (tempo "geral", usado quando não há
+ │   um tempo específico pra máquina escolhida na OP)
+ ├── maquinas_compativeis (N:N com maquinas, tabela pecas_maquinas — cada vínculo pode
+ │   ter seu próprio tempo_padrao_segundos, com prioridade sobre o tempo geral da peça)
  ├── materiais_necessarios (lista livre: material + quantidade por unidade — informativo, sem estoque)
  └── material (FK, opcional) + comprimento_consumido_mm (barra) ou pecas_por_folha (chapa)
 
@@ -199,6 +201,7 @@ inspecoes_linha (checklist rápido do inspetor de linha sobre a máquina/OP em p
 | 44 | Fica "pendente" (mostrado na própria tela da máquina) quando já faz mais de 1h desde a última inspeção de linha *daquela máquina* (não da OP — se a OP mudar no meio do turno, o que conta é a máquina) |
 | 45 | Gestor também enxerga e pode usar a Inspeção de Linha (além do apontamento normal), pra acompanhar como o inspetor de linha está usando |
 | 46 | Exclusão de um registro de Inspeção de Linha (no histórico `/inspecao-linha`) é só gestor |
+| 47 | Tempo padrão de uma peça pode variar por máquina (achado importando a base de tempos do setor de qualidade — a mesma peça roda em tempos diferentes em máquinas diferentes). O tempo específico peça+máquina (cadastrado no vínculo de compatibilidade) tem prioridade; o tempo "geral" da peça só é usado quando não há um tempo específico pra aquela máquina |
 
 ## 6. Fases de desenvolvimento
 
@@ -251,3 +254,4 @@ inspecoes_linha (checklist rápido do inspetor de linha sobre a máquina/OP em p
 | 2026-11-25 | Migração 0015: corrigido `criar_sublote_apos_apontamento` pra também nascer direto "em andamento" quando a 1ª etapa do roteiro (ou a 1ª depois de retomar numa OP de 2ª operação) já é do tipo inspeção — achado testando a Parte 3 de ponta a ponta |
 | 2026-11-25 | Migração 0016 + ajustes de UI: quantidade de peças passou a ser sempre inteira, em todo input e checado no banco (regra 40). Removida a tela "Apontamento" de digitar o número da OP — o Painel já linka direto pra cada máquina (regra 41). Aba Qualidade ganhou filtros de máquina/peça/lote/data (regra 42). Corrigido de passagem um bug achado no teste da Parte 3: `criarOPPlanejada` tentava gravar `pecas_maquinas` com a sessão do operador (RLS de gestor) ao gerar OP de 2ª operação pelo celular — agora isso é gravado no cadastro do roteiro (gestor) e a criação da OP em si usa client admin, já que quem aciona é o operador |
 | 2026-11-25 | Inspeção de Linha, 1ª versão (migrações 0017–0019): tabela `inspecoes_linha` (situação geral OK/Não OK/Parada + motivo se não for OK + turno calculado sozinho). Telas: `/inspecao-linha/[numero]` (checklist, acessado clicando na máquina no Painel) e `/inspecao-linha` (histórico, com filtro nenhum ainda). Painel ganhou os links "Apontamento →"/"Inspeção de linha →" por máquina (substituindo o cartão inteiro ser um único link), gestor vendo os dois pra acompanhar. Regras 43–46. O desenho inicial incluía um checklist cota a cota do plano de medição da peça, mas foi simplificado pra só situação geral + motivo (0018, depois de 0017 já ter sido aplicada na versão antiga, daí a 0018 corrigir em cima). A 0019 liberou gestor também gravar inspeção de linha (a RLS só deixava perfil qualidade) |
+| 2026-11-26 | Tempo padrão por peça+máquina (migração 0020): `pecas_maquinas` ganhou `tempo_padrao_segundos`, com prioridade sobre o tempo geral da peça ao calcular o tempo estimado da OP. Tela de cadastro de peça ganhou o campo por máquina. Regra 47. Importados 300 cadastros novos de peça (+ 4 completados) a partir de uma planilha do setor de qualidade (`Base_pecas_tempo_cotas.xlsx`, não versionada): 2004 cotas de plano de medição e 531 vínculos peça+máquina (522 com tempo). Código de cada peça nova = nome da planilha (o usuário ainda vai revisar e trocar pelo código de produção real, peça por peça) — 5 nomes de máquina da planilha não bateram com nenhuma das 12 cadastradas e ficaram de fora a pedido do usuário |
