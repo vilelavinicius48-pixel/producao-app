@@ -1,47 +1,132 @@
 # Sistema de Acompanhamento de Produção em Tempo Real
 ### Documento de referência do projeto
 
-> Atualize este documento sempre que uma regra de negócio mudar durante o desenvolvimento. Ele é a fonte da verdade do que o sistema deve fazer — o Claude Code deve ser instruído a seguir o que está aqui.
+> Atualize este documento sempre que uma regra de negócio mudar durante o desenvolvimento. Ele é a fonte da verdade do que o sistema deve fazer — o Claude Code deve ser instruído a seguir o que está aqui. Ele também é o ponto de partida pra qualquer pessoa (ou IA) que precise continuar este projeto sem o contexto das conversas anteriores.
 
 ---
 
 ## 1. Visão geral
 
-Sistema web para acompanhar a produção em tempo real, com três tipos de acesso:
-- **Gestores:** computador, visão de relatórios e histórico
-- **Colaboradores (operadores):** tablet/PC no chão de fábrica, tela de apontamento
-- **Dashboard de gestão visual:** TV/monitor fixo na produção, atualização automática
+Mini-MES (sistema de acompanhamento de produção) pra uma fábrica de usinagem (RPVILELA Usinagens),
+com três tipos de acesso:
+- **Gestores:** computador, acesso a tudo (PCP, cadastros, relatórios, histórico)
+- **Operadores (colaboradores):** tablet/PC no chão de fábrica, só a tela de apontamento da máquina
+- **Qualidade:** inspeção dos lotes e inspeção de linha, direto no celular/computador
 
-Porte do projeto: pequeno, mas com complexidade real de regras de negócio e concorrência.
+Porte do projeto: pequeno, mas com complexidade real de regras de negócio, concorrência (vários
+operadores no mesmo chão de fábrica) e integrações (carteira de pedidos e estoque de matéria-prima
+vêm de planilhas exportadas de outro sistema que a empresa já usa).
+
+Instalável como PWA (tem manifest + service worker), com a identidade visual da RPVILELA
+(fonte Poppins, cor "brand" navy — ver tokens em `globals.css`).
 
 ## 2. Stack tecnológica
 
 | Camada | Tecnologia | Motivo |
 |---|---|---|
-| Frontend + Backend | Next.js (TypeScript) | Um projeto só, fácil de manter com IA |
+| Frontend + Backend | Next.js (App Router, TypeScript) | Um projeto só, fácil de manter com IA |
 | Banco de dados | Supabase (Postgres) | Relacional, encaixa no modelo de dados abaixo |
-| Tempo real | Supabase Realtime | Dashboard atualiza sozinho, sem refresh manual |
-| Autenticação | Supabase Auth | Perfis: gestor, operador, qualidade |
-| UI | Tailwind CSS | Rápido, bem documentado para IA |
+| Tempo real | Supabase Realtime | Painel atualiza sozinho, sem refresh manual |
+| Autenticação | Supabase Auth | Perfis: gestor, operador, qualidade — login por matrícula |
+| UI | Tailwind CSS v4 | Rápido, bem documentado para IA |
 | Deploy | Vercel (app) + Supabase Cloud (dados) | Grátis nessa escala; avaliar hospedagem local se a fábrica não tiver internet estável |
 
-## 3. Módulos do sistema
+## 3. Estrutura de pastas
 
-1. **Cadastro** — peças, máquinas, operadores, motivos de parada
-2. **Geração de OP** — numeração automática; cálculo automático de tempo e material ao selecionar peça + quantidade + máquina
-3. **Apontamento de produção** — start/stop, quantidade produzida/refugada, seleção de operador
-4. **Fluxo de parada** — botão Parada / botão Voltar de parada (com motivo)
-5. **Fechamento de OP** — eficiência, saldo produzido, tempo restante (calculado automaticamente)
-6. **Dashboard** — situação de cada máquina em tempo real (só OPs ativas)
-7. **Qualidade** — inspeção por apontamento (aprovado/reprovado/retrabalho + observação)
-8. **Histórico** — todos os apontamentos, paradas e inspeções de cada OP
-9. **Relatório diário** — planejado x realizado x parado, por máquina
-10. **PCP** (`/pcp`, só gestor) — carteira de pedidos importada da planilha do sistema, geração de OP a partir do pedido, preparação (material/ferramenta/dispositivo/programa), fila por máquina, pendências e estoque de peças prontas
-11. **Material do PCP** — catálogo de materiais (barra ou chapa), estoque de material em metros/folhas, necessidade de material (o que falta comprar) e pedidos de compra com previsão de chegada; o status "Material" da OP passa a ser calculado sozinho
-12. **Pós-máquina** (em construção, por partes) — depois que a peça sai da máquina, segue sozinha um roteiro de etapas (rebarbação, lavagem, inspeção, tratamento externo, 2ª operação em máquina, etc.) até virar peça pronta, em vez do gestor decidir uma a uma. Parte 1 (pronta): cadastro de etapas/postos, tratamentos, fornecedores e motivos de refugo; roteiro e plano de medição por peça. Parte 2 (pronta): sublote gerado automaticamente ao fechar o apontamento, Ficha da OP impressa com QR code e folha de medição, página da OP no celular. Parte 3 (pronta): botões Iniciar/Concluir etapa no celular (manual/externo), geração automática da OP de 2ª operação (máquina), e inspeção de qualidade como etapa do roteiro integrada ao módulo de Qualidade já existente (sem duplicar nada). Partes seguintes (ainda não feitas): juntar sublotes, quadro "onde está cada lote", fila por etapa (tela de PC/tablet), tratamento externo com registro de envio/retorno e lista de atrasados, e decisão do gestor sobre sublotes `aguardando_decisao` (retrabalho)
-13. **Inspeção de Linha** (em construção) — checklist rápido do perfil qualidade sobre a máquina/OP em produção: situação geral (OK/Não OK/Parada) + motivo se não for OK. Pronto: registro do checklist (`/inspecao-linha/[numero]`, acessado clicando na máquina no Painel) e histórico (`/inspecao-linha`). Ainda não feito: dashboard com visão geral de pendências por máquina
+```
+src/
+├── app/
+│   ├── login/                      tela de login (matrícula + senha)
+│   └── (app)/                      tudo que exige login, com o layout/nav comum
+│       ├── layout.tsx              nav de topo + bottom nav mobile; cada item filtrado por perfil
+│       ├── page.tsx                Painel: um card por máquina, em tempo real (ver módulo 6)
+│       ├── MobileBottomNav.tsx, CadastrosMenu.tsx, DashboardRealtime.tsx
+│       ├── apontamento/[numero]/   tela de apontamento de uma OP (setup → start/stop → parada)
+│       ├── ordens/                 lista de OPs; ordens/[numero] = detalhe; ordens/[numero]/ficha
+│       │                           = Ficha da OP pra imprimir (QR code); ordens/nova = tela antiga
+│       │                           (tem um bug conhecido, ver seção 10 — usar /pcp/nova-op)
+│       ├── op/[numero]/            página da OP pro celular (aberta pelo QR da Ficha): sublotes +
+│       │                           botões Iniciar/Concluir etapa
+│       ├── pcp/                    carteira, nova-op, programacao (fila por máquina), pendencias,
+│       │                           necessidade (de material), compras, estoque, importar (carteira)
+│       ├── cadastros/              pecas (+ roteiro/plano de medição/tempo por máquina dentro de
+│       │                           cadastros/pecas/[id]), maquinas, materiais (+ materiais/importar),
+│       │                           operadores, motivos-parada, motivos-refugo, etapas, tratamentos,
+│       │                           fornecedores
+│       ├── qualidade/              lista de inspeções pendentes (por apontamento + por etapa de
+│       │                           sublote); qualidade/[apontamentoId] e
+│       │                           qualidade/sublote/[subloteEtapaId] são os formulários de inspeção
+│       ├── inspecao-linha/         checklist rápido por máquina (inspecao-linha/[numero]) +
+│       │                           histórico (inspecao-linha/page.tsx)
+│       ├── historico/              histórico consolidado (apontamentos, paradas, inspeções)
+│       └── relatorios/diario/      planejado x realizado x parado, com gráfico de eficiência
+├── components/                     Cronometro, EficienciaChart, MaterialCombobox, TimeInput
+├── lib/
+│   ├── auth.ts                     getOperadorAtual (cacheado) + requireGestor/requireOperador/
+│   │                               requireQualidade (redirecionam se o perfil não bate)
+│   ├── supabase/
+│   │   ├── client.ts               client do browser
+│   │   ├── server.ts               client de Server Components/Actions (respeita RLS)
+│   │   ├── admin.ts                client com service role (ignora RLS) — só pra casos em que o
+│   │   │                           perfil de quem aciona é menos privilegiado que a tabela exige
+│   │   │                           (ex.: operador gerando OP de 2ª operação pelo celular)
+│   │   └── middleware.ts           refresh de sessão
+│   ├── pcp/
+│   │   ├── carteira.ts             formatação (datas/quantidades) e tipos da carteira
+│   │   ├── material.ts             cálculo de consumo de material (barras/folhas/metros)
+│   │   ├── criar-op.ts             criarOPPlanejada — ponto ÚNICO de criação de OP (todo fluxo que
+│   │   │                           cria OP passa por aqui: /pcp/nova-op e a 2ª operação do pós-máquina)
+│   │   ├── csv.ts, paginar.ts, recalcular-material.ts, estoque-material-import.ts
+│   ├── roteiro.ts                  labels/cores do tipo de etapa do roteiro pós-máquina
+│   ├── inspecao-linha.ts           turno calculado automaticamente, labels/cores de status
+│   ├── op-status.ts                labels/cores de status da OP e dos itens de preparo
+│   ├── tempo.ts                    formatação de segundos (h:min:s)
+│   └── base-url.ts                 monta a URL absoluta usada no QR code da Ficha da OP
+└── types/database.ts               tipos TypeScript espelhando o schema do Supabase (Row/Insert/
+                                     Update/Relationships de cada tabela + assinatura de cada função)
 
-## 4. Modelo de dados (entidades e relacionamentos)
+supabase/migrations/                0001 a 0020 (sequenciais). Aplicadas manualmente pelo usuário
+                                     no SQL Editor do Supabase (sem CLI/token configurado). NUNCA
+                                     editar uma migration já aplicada — sempre criar a próxima.
+```
+
+## 4. Módulos do sistema (o que faz, onde fica)
+
+1. **Cadastro** (`/cadastros/*`) — peças, máquinas, materiais, operadores, motivos de parada/refugo, etapas, tratamentos, fornecedores
+2. **Geração de OP** (`/pcp/nova-op`) — numeração automática; cálculo automático de tempo e material ao selecionar peça + quantidade + máquina
+3. **Apontamento de produção** (`/apontamento/[numero]`) — setup, start/stop, quantidade produzida/refugada, seleção de operador
+4. **Fluxo de parada** — botão Parada / botão Voltar de parada (com motivo), dentro da própria tela de apontamento
+5. **Fechamento de OP** — eficiência, saldo produzido (calculado automaticamente, view `op_progresso`)
+6. **Painel** (`/`) — situação de cada máquina em tempo real, com os links de ação certos pro perfil de quem está olhando
+7. **Qualidade** (`/qualidade`) — inspeção por apontamento (fluxo original) e por etapa de sublote (pós-máquina), aprovado/reprovado/retrabalho + observação
+8. **Histórico** (`/historico`) — todos os apontamentos, paradas e inspeções de cada OP
+9. **Relatório diário** (`/relatorios/diario`) — planejado x realizado x parado, por máquina
+10. **PCP** (`/pcp/*`, só gestor) — carteira de pedidos importada da planilha do sistema, geração de OP a partir do pedido, preparação (material/ferramenta/dispositivo/programa), fila por máquina, pendências e estoque de peças prontas
+11. **Material do PCP** (`/pcp/necessidade`, `/pcp/compras`, `/cadastros/materiais`) — catálogo de materiais (barra ou chapa), estoque de material em metros/folhas, necessidade de material (o que falta comprar) e pedidos de compra com previsão de chegada; o status "Material" da OP é calculado sozinho
+12. **Pós-máquina** (`/cadastros/pecas/[id]` aba roteiro/medição, `/ordens/[numero]/ficha`, `/op/[numero]`) — depois que a peça sai da máquina, segue sozinha um roteiro de etapas até virar peça pronta. Ver seção 11 (Próximos passos) pro que falta
+13. **Inspeção de Linha** (`/inspecao-linha/*`) — checklist rápido do perfil qualidade sobre a máquina/OP em produção
+
+## 5. Perfis de acesso
+
+Perfil fica em `operadores.perfil`: `gestor` | `operador` | `qualidade`. Login é sempre por
+matrícula + senha (a matrícula vira um e-mail sintético `matricula@producao.local` por baixo dos
+panos, pro Supabase Auth aceitar).
+
+- **operador** — chão de fábrica. Só enxerga o Painel; clica na máquina que está operando e cai
+  direto no apontamento daquela OP (setup/start/stop/parada). Sem acesso a cadastros, PCP ou qualidade.
+- **qualidade** — inspeção. Enxerga o Painel (clicar na máquina leva pra Inspeção de Linha, não pro
+  apontamento), a aba Qualidade (inspeção por apontamento e por etapa de sublote) e o Histórico.
+- **gestor** — acesso a tudo: Painel (vê as duas opções, Apontamento e Inspeção de linha, em cada
+  máquina — é o único que vê as duas ao mesmo tempo, pra poder acompanhar o uso de qualquer uma),
+  PCP, Cadastros, Ordens, Qualidade, Inspeção de Linha, Histórico, Relatório diário. É o único
+  perfil que exclui cadastros e registros de Inspeção de Linha.
+
+No banco (RLS), a maioria das tabelas sensíveis trava escrita com a função SQL `is_gestor()`.
+`is_qualidade()` cobre tanto o perfil `qualidade` quanto (desde a migração 0019) `gestor`, pra
+os dois poderem registrar inspeção. Leitura (`select`) é liberada pra qualquer usuário autenticado
+na maioria das tabelas — a proteção de verdade fica na escrita.
+
+## 6. Modelo de dados (entidades e relacionamentos)
 
 ```
 pecas
@@ -115,7 +200,7 @@ motivos_parada
 ordens_producao (OP)
  ├── número (sequencial automático)
  ├── peça (FK), quantidade_planejada, máquina (FK)
- ├── status: em_producao | parada | concluida
+ ├── status: planejada | aberta | setup | em_producao | parada | concluida
  ├── tempo_estimado (calculado), material_necessario (calculado)
  ├── op_origem + roteiro_etapa_origem (FKs, só preenchidos em OP de 2ª operação:
  │   de qual OP e de qual etapa "máquina" do roteiro ela nasceu — o sublote que
@@ -151,7 +236,7 @@ inspecoes_linha (checklist rápido do inspetor de linha sobre a máquina/OP em p
  └── observação (opcional)
 ```
 
-## 5. Regras de negócio (decisões já fechadas)
+## 7. Regras de negócio (decisões já fechadas)
 
 | # | Regra |
 |---|---|
@@ -163,7 +248,7 @@ inspecoes_linha (checklist rápido do inspetor de linha sobre a máquina/OP em p
 | 6 | Trava de recurso exclusivo vale por OP **e** por máquina simultaneamente — não dá pra abrir novo apontamento se qualquer um dos dois já estiver ocupado |
 | 7 | Enquanto uma OP tem apontamento aberto por um operador, nenhum outro pode abrir apontamento nela; ao fechar, qualquer operador pode abrir um novo |
 | 8 | Inspeção de qualidade é 1-para-1 com cada apontamento (não com a OP inteira), e só ocorre depois que o apontamento é fechado — é quando a peça física chega à qualidade |
-| 9 | Estados da OP: `em_producao`, `parada`, `concluida` |
+| 9 | Estados da OP: `em_producao`, `parada`, `concluida` (depois ampliados pela regra 13) |
 | 10 | Dashboard mostra só OPs `em_producao` ou `parada`; `concluida` vai para o histórico |
 | 11 | Histórico armazena todos os apontamentos, paradas e inspeções, consultável durante e após a produção |
 | 12 | Relatório diário compara planejado x realizado x parado por máquina, indicando atraso |
@@ -203,7 +288,7 @@ inspecoes_linha (checklist rápido do inspetor de linha sobre a máquina/OP em p
 | 46 | Exclusão de um registro de Inspeção de Linha (no histórico `/inspecao-linha`) é só gestor |
 | 47 | Tempo padrão de uma peça pode variar por máquina (achado importando a base de tempos do setor de qualidade — a mesma peça roda em tempos diferentes em máquinas diferentes). O tempo específico peça+máquina (cadastrado no vínculo de compatibilidade) tem prioridade; o tempo "geral" da peça só é usado quando não há um tempo específico pra aquela máquina |
 
-## 6. Fases de desenvolvimento
+## 8. Fases de desenvolvimento (histórico)
 
 1. Setup (Next.js + Supabase + Auth) + cadastros
 2. Geração de OP com cálculo automático
@@ -214,30 +299,67 @@ inspecoes_linha (checklist rápido do inspetor de linha sobre a máquina/OP em p
 7. Módulo de qualidade
 8. Histórico consolidado
 9. Relatório diário
+10. PCP (carteira, preparo, fila, pendências, estoque)
+11. Material do PCP
+12. Pós-máquina (roteiro, sublotes, Ficha da OP, celular) — em partes, ver seção 11
+13. Inspeção de Linha — em partes, ver seção 11
 
-## 7. Dependências entre fases
+## 9. Como rodar localmente
 
-- Cadastro → precisa existir antes de qualquer OP
-- Geração de OP → depende do cadastro completo
-- Apontamento → depende da OP existir
-- Fechamento/eficiência → depende do apontamento completo
-- Dashboard → depende do apontamento e parada em tempo real funcionando
-- Qualidade → depende de apontamentos fechados existirem
-- Relatório diário → depende de tudo acima já rodando
+1. `npm install`
+2. Criar `.env.local` na raiz com (pedir os valores — nunca commitar, não ficam no repositório):
+   - `NEXT_PUBLIC_SUPABASE_URL`
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+   - `SUPABASE_SERVICE_ROLE_KEY` (service role — ignora RLS; só usar server-side/scripts administrativos, nunca no client)
+3. `npm run dev` → http://localhost:3000
+4. `npm run build` / `npm run start` — build de produção local; `npm run lint` — ESLint
 
-## 8. Riscos
+Não existe ambiente de teste separado: tanto local quanto Vercel apontam pro mesmo banco Supabase
+de produção. Qualquer teste manual que grave dado (OP, operador, peça etc.) precisa ser limpo
+depois — nunca deixar dado de teste no banco real.
 
-| Risco | Mitigação |
+## 10. Deploy
+
+- **Código**: GitHub (`vilelavinicius48-pixel/producao-app`), branch `main`. Push em `main` →
+  Vercel faz deploy automático (1-2 min). URL de produção: `https://producao-app-jet.vercel.app`
+- **Banco**: Supabase Cloud, projeto ref `uhblbgibmyfzdrnujkgf`. Não tem CLI/token configurado —
+  toda migration nova (`supabase/migrations/NNNN_descricao.sql`) é aplicada **manualmente** pelo
+  usuário, colando o SQL exato no SQL Editor do Supabase. Nunca editar uma migration já aplicada —
+  sempre criar a próxima (numeração sequencial)
+- O projeto Supabase está no plano free e **pausa sozinho por inatividade** — se uma migration não
+  aplicar ou o app parar de responder, primeiro checar se não é só o projeto pausado ("Resume project")
+- Fluxo de trabalho: features grandes em branch separada (ex.: `pos-maquina`), testada e aprovada
+  pelo usuário, depois merge (fast-forward) pra `main` + push. Só fazer merge/push quando o usuário
+  aprovar explicitamente
+
+## 11. Riscos e problemas conhecidos
+
+| Risco / Problema | Mitigação |
 |---|---|
 | Tempo padrão cadastrado errado | Validar com cronoanálise real antes de ligar o sistema |
 | Parada esquecida sem retorno acumulando | Aceito como dado correto; considerar alerta visual para paradas muito longas |
 | Concorrência (2 operadores, mesma OP/máquina) | Trava por OP + máquina (regra 6) |
-| Escopo crescendo além do previsto | Entregar em fases, uma de cada vez, sem pular etapas |
 | Internet instável na fábrica afetando Supabase Cloud/Vercel | Avaliar hospedagem local (Postgres + Next.js em servidor próprio) se for um problema real |
 | Consultas simultâneas (`Promise.all`) numa Server Action que muda dados podem derrubar a sessão do Supabase (renovação de token em corrida) | Nas Server Actions que escrevem no banco, rodar as consultas em sequência, não em paralelo. Página só de leitura pode usar `Promise.all` normalmente |
-| Bug pré-existente conhecido: `/ordens/nova` (OPForm → `createOP`) desloga o usuário ao gerar a OP, mesmo sem erro nenhum no servidor — função raramente usada, já que o fluxo real é `/pcp/nova-op` (que funciona normalmente). Ainda não diagnosticado a fundo; investigar se for reativar essa tela | — |
+| Bug conhecido: `/ordens/nova` (OPForm → `createOP`) desloga o usuário ao gerar a OP, mesmo sem erro nenhum no servidor | Função raramente usada, já que o fluxo real é `/pcp/nova-op` (que funciona normalmente). Ainda não diagnosticado a fundo; investigar se for reativar essa tela |
+| RLS de algumas tabelas (ex.: `pecas_maquinas`, `ordens_producao`) exige perfil gestor pra escrever, mas certas ações do pós-máquina são acionadas por operador/qualidade pelo celular | Resolvido caso a caso: ou a regra é cadastrada antes pelo gestor (ex.: compatibilidade de máquina no roteiro), ou a Server Action usa `lib/supabase/admin.ts` (service role) depois de validar o perfil de quem chama |
 
-## 9. Registro de mudanças
+## 12. Próximos passos (conhecido, ainda não feito)
+
+- **Pós-máquina**: juntar sublotes, quadro "onde está cada lote", fila por etapa (tela de PC/tablet
+  fixa no chão de fábrica), tratamento externo (registro de envio/retorno + lista de atrasados), e
+  uma tela pro gestor decidir o que fazer com sublotes `aguardando_decisao` (retrabalho) — hoje eles
+  só ficam ali parados, sem nenhuma ação disponível
+- **Inspeção de Linha**: dashboard com visão geral de pendências por máquina (hoje só dá pra ver se
+  está "pendente"/"em dia" abrindo a tela de cada máquina uma de cada vez, pelo Painel)
+- **~300 peças importadas** de uma planilha do setor de qualidade (migração/import de 2026-11-26)
+  estão com `codigo` = nome da peça (provisório, decisão do usuário) — precisam ser revisadas e
+  trocadas pelo código de produção real, uma por uma, em Cadastros → Peças
+- **Baixa automática de estoque** de peças prontas na conclusão da OP ou no faturamento ainda não
+  existe (hoje só entra estoque pelo fim do roteiro pós-máquina, e sai por lançamento manual)
+- Ver também a lista de bugs conhecidos na seção 11
+
+## 13. Registro de mudanças
 
 > Adicione uma linha aqui sempre que uma decisão mudar durante o desenvolvimento.
 
@@ -255,3 +377,4 @@ inspecoes_linha (checklist rápido do inspetor de linha sobre a máquina/OP em p
 | 2026-11-25 | Migração 0016 + ajustes de UI: quantidade de peças passou a ser sempre inteira, em todo input e checado no banco (regra 40). Removida a tela "Apontamento" de digitar o número da OP — o Painel já linka direto pra cada máquina (regra 41). Aba Qualidade ganhou filtros de máquina/peça/lote/data (regra 42). Corrigido de passagem um bug achado no teste da Parte 3: `criarOPPlanejada` tentava gravar `pecas_maquinas` com a sessão do operador (RLS de gestor) ao gerar OP de 2ª operação pelo celular — agora isso é gravado no cadastro do roteiro (gestor) e a criação da OP em si usa client admin, já que quem aciona é o operador |
 | 2026-11-25 | Inspeção de Linha, 1ª versão (migrações 0017–0019): tabela `inspecoes_linha` (situação geral OK/Não OK/Parada + motivo se não for OK + turno calculado sozinho). Telas: `/inspecao-linha/[numero]` (checklist, acessado clicando na máquina no Painel) e `/inspecao-linha` (histórico, com filtro nenhum ainda). Painel ganhou os links "Apontamento →"/"Inspeção de linha →" por máquina (substituindo o cartão inteiro ser um único link), gestor vendo os dois pra acompanhar. Regras 43–46. O desenho inicial incluía um checklist cota a cota do plano de medição da peça, mas foi simplificado pra só situação geral + motivo (0018, depois de 0017 já ter sido aplicada na versão antiga, daí a 0018 corrigir em cima). A 0019 liberou gestor também gravar inspeção de linha (a RLS só deixava perfil qualidade) |
 | 2026-11-26 | Tempo padrão por peça+máquina (migração 0020): `pecas_maquinas` ganhou `tempo_padrao_segundos`, com prioridade sobre o tempo geral da peça ao calcular o tempo estimado da OP. Tela de cadastro de peça ganhou o campo por máquina. Regra 47. Importados 300 cadastros novos de peça (+ 4 completados) a partir de uma planilha do setor de qualidade (`Base_pecas_tempo_cotas.xlsx`, não versionada): 2004 cotas de plano de medição e 531 vínculos peça+máquina (522 com tempo). Código de cada peça nova = nome da planilha (o usuário ainda vai revisar e trocar pelo código de produção real, peça por peça) — 5 nomes de máquina da planilha não bateram com nenhuma das 12 cadastradas e ficaram de fora a pedido do usuário |
+| 2026-11-26 | Reorganizado o documento (sem mudança de regra): adicionadas as seções de Estrutura de pastas, Perfis de acesso, Como rodar localmente, Deploy e Próximos passos, pensadas pra quem for continuar o projeto sem o contexto das conversas anteriores |
