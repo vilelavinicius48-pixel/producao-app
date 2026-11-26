@@ -99,7 +99,7 @@ export async function criarOPPlanejada(
 
   const { data: compat, error: compatError } = await supabase
     .from("pecas_maquinas")
-    .select("maquina_id")
+    .select("maquina_id, tempo_padrao_segundos")
     .eq("peca_id", pecaId);
   if (compatError) throw new Error(compatError.message);
 
@@ -110,6 +110,10 @@ export async function criarOPPlanejada(
     const { error } = await supabase.from("pecas_maquinas").insert({ peca_id: pecaId, maquina_id: maquinaId });
     if (error) throw new Error(error.message);
   }
+
+  // Tempo específico da peça nessa máquina tem prioridade sobre o tempo padrão geral.
+  const tempoMaquina = compat.find((c) => c.maquina_id === maquinaId)?.tempo_padrao_segundos ?? null;
+  const tempoPadrao = tempoMaquina ?? peca.tempo_padrao_segundos;
 
   const { data: ultima } = await supabase
     .from("ordens_producao")
@@ -128,8 +132,7 @@ export async function criarOPPlanejada(
       peca_id: pecaId,
       maquina_id: maquinaId,
       quantidade_planejada: quantidade,
-      tempo_estimado_segundos:
-        peca.tempo_padrao_segundos !== null ? peca.tempo_padrao_segundos * quantidade : null,
+      tempo_estimado_segundos: tempoPadrao !== null ? tempoPadrao * quantidade : null,
       criado_por: criadoPor,
       status: "planejada",
       pedido_item_id: pedidoItemId,

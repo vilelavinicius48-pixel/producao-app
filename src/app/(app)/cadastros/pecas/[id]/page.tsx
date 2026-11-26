@@ -25,7 +25,7 @@ export default async function PecaDetalhePage({ params }: { params: Promise<{ id
     { data: tratamentosAtivos },
     { data: outrasPecas },
   ] = await Promise.all([
-    supabase.from("pecas_maquinas").select("maquina_id").eq("peca_id", id),
+    supabase.from("pecas_maquinas").select("maquina_id, tempo_padrao_segundos").eq("peca_id", id),
     supabase.from("peca_materiais").select("*").eq("peca_id", id),
     supabase.from("maquinas").select("id, codigo, nome, barra_comprimento_mm, barra_sobra_mm").eq("ativo", true).order("codigo"),
     supabase.from("materiais").select("id, formato, tipo, medida_a_mm, medida_b_mm, espessura_mm").eq("ativo", true).order("tipo"),
@@ -51,6 +51,7 @@ export default async function PecaDetalhePage({ params }: { params: Promise<{ id
   ]);
 
   const compativeisIds = new Set((compativeis ?? []).map((c) => c.maquina_id));
+  const tempoPorMaquina = new Map((compativeis ?? []).map((c) => [c.maquina_id, c.tempo_padrao_segundos]));
   const maquinasCompativeis = (maquinas ?? []).filter((m) => compativeisIds.has(m.id));
   const desenhoUrl = peca.desenho_path
     ? supabase.storage.from("desenhos").getPublicUrl(peca.desenho_path).data.publicUrl
@@ -102,19 +103,33 @@ export default async function PecaDetalhePage({ params }: { params: Promise<{ id
           />
         </div>
         <div>
-          <p className="mb-2 text-sm font-medium text-slate-700">Máquinas que fazem esta peça</p>
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+          <p className="mb-1 text-sm font-medium text-slate-700">Máquinas que fazem esta peça</p>
+          <p className="mb-2 text-xs text-slate-500">
+            Tempo (s) é opcional — só preencha se o tempo de ciclo nessa máquina for diferente do tempo padrão geral acima.
+          </p>
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             {maquinas?.map((m) => (
-              <label key={m.id} className="flex items-center gap-2 text-sm text-slate-700">
+              <div key={m.id} className="flex items-center gap-2 text-sm text-slate-700">
+                <label className="flex flex-1 items-center gap-2">
+                  <input
+                    type="checkbox"
+                    name="maquina_id"
+                    value={m.id}
+                    defaultChecked={compativeisIds.has(m.id)}
+                    className="h-4 w-4"
+                  />
+                  {m.nome}
+                </label>
                 <input
-                  type="checkbox"
-                  name="maquina_id"
-                  value={m.id}
-                  defaultChecked={compativeisIds.has(m.id)}
-                  className="h-4 w-4"
+                  type="number"
+                  min="0"
+                  step="1"
+                  name={`tempo_maquina_${m.id}`}
+                  placeholder="tempo (s)"
+                  defaultValue={tempoPorMaquina.get(m.id) ?? ""}
+                  className="w-24 rounded-lg border border-slate-300 px-2 py-1 text-sm focus:border-brand-500 focus:outline-none"
                 />
-                {m.nome}
-              </label>
+              </div>
             ))}
           </div>
         </div>

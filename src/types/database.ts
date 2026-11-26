@@ -190,6 +190,7 @@ export type PedidoCompraMaterial = {
 export type PecaMaquina = {
   peca_id: string;
   maquina_id: string;
+  tempo_padrao_segundos: number | null;
 };
 
 export type PecaMaterial = {
@@ -509,7 +510,7 @@ export type Database = {
       };
       pecas_maquinas: {
         Row: PecaMaquina;
-        Insert: PecaMaquina;
+        Insert: Partial<PecaMaquina> & Pick<PecaMaquina, "peca_id" | "maquina_id">;
         Update: Partial<PecaMaquina>;
         Relationships: [
           {

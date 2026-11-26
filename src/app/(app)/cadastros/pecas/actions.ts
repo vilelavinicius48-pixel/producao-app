@@ -93,9 +93,13 @@ export async function updatePeca(formData: FormData) {
   const { error: errDel } = await supabase.from("pecas_maquinas").delete().eq("peca_id", id);
   if (errDel) throw new Error(errDel.message);
   if (maquinaIds.length > 0) {
-    const { error: errIns } = await supabase
-      .from("pecas_maquinas")
-      .insert(maquinaIds.map((maquina_id) => ({ peca_id: id, maquina_id })));
+    const { error: errIns } = await supabase.from("pecas_maquinas").insert(
+      maquinaIds.map((maquina_id) => {
+        const tempoStr = String(formData.get(`tempo_maquina_${maquina_id}`) ?? "").trim();
+        const tempo = tempoStr ? Number(tempoStr) : null;
+        return { peca_id: id, maquina_id, tempo_padrao_segundos: tempo && tempo > 0 ? tempo : null };
+      })
+    );
     if (errIns) throw new Error(errIns.message);
   }
 
